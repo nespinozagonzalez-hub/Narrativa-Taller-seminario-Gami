@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0c252c">
+  <meta name="description" content="Un tablero pirata para acompañar el taller: siete tripulaciones, dados, monedas y un tesoro compartido.">
+  <title>La ruta del tesoro · Taller de gamificación</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="core.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <svg class="icon-library" aria-hidden="true"><defs>
+    <symbol id="i-anchor" viewBox="0 0 24 24"><circle cx="12" cy="5" r="3"/><path d="M12 8v13M5 11H2c0 6 4 10 10 10s10-4 10-10h-3M8 12h8"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 5c-4-3-8-2-10-1v15c4-1 7-1 10 1 3-2 6-2 10-1V4c-2-1-6-2-10 1v15"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 4 3 10l6 6M3 10h11a7 7 0 0 1 7 7v3"/></symbol>
+    <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10m3-8c-5-3-8 3-3 3s2 6-3 3"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 1 1 5 2c-2 1-2 2-2 3m0 3h.01"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></symbol>
+    <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 22V3c5-5 9 5 15 0v12c-6 5-10-5-15 0"/></symbol>
+  </defs></svg>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand"><span class="brand-icon"><svg><use href="#i-anchor"/></svg></span><div><p class="eyebrow">UNA AVENTURA PARA APRENDER JUGANDO</p><h1>La ruta del tesoro</h1></div></div>
+      <nav class="toolbar" aria-label="Herramientas del taller">
+        <button class="quiet" id="storyBtn"><svg><use href="#i-book"/></svg><span>Narrativa</span></button>
+        <button class="quiet" id="settingsBtn"><svg><use href="#i-settings"/></svg><span>Preparar</span></button>
+        <button class="icon-button" id="fullscreenBtn" aria-label="Activar pantalla completa" title="Pantalla completa"><svg><use href="#i-expand"/></svg></button>
+        <button class="icon-button" id="helpBtn" aria-label="Cómo usar el tablero"><svg><use href="#i-help"/></svg></button>
+      </nav>
+    </header>
+    <div class="voyage-meta"><p><span class="live-dot"></span><span id="chapterLabel">La tripulación se reúne</span></p><p id="saveStatus">Guardado en este navegador</p></div>
+    <main class="dashboard">
+      <section class="map-panel" aria-labelledby="mapTitle">
+        <div class="map-heading"><div><p class="eyebrow">EL MAPA DE LA EXPEDICIÓN</p><h2 id="mapTitle">Un mar de posibilidades</h2></div><span class="round-badge" id="roundLabel">Ronda 0</span></div>
+        <div class="ocean-wrap">
+          <svg id="oceanMap" class="ocean" viewBox="0 0 1100 630" role="group" aria-label="Mapa con 24 casillas entre el puerto de salida y la isla del tesoro">
+            <defs>
+              <radialGradient id="sea"><stop stop-color="#20545b"/><stop offset="1" stop-color="#12353f"/></radialGradient>
+              <pattern id="waves" width="150" height="95" patternUnits="userSpaceOnUse"><path d="M20 27q10-8 20 0t20 0m40 40q10-8 20 0t20 0" fill="none" stroke="#b0d9d1" stroke-opacity=".12" stroke-width="2"/></pattern>
+              <filter id="shadow"><feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#000" flood-opacity=".22"/></filter>
+              <g id="shipShape"><path d="M-29 13Q0 41 29 13L20 30Q0 43-19 30Z" fill="#674237" stroke="#f9dfb1" stroke-width="2"/><path d="M-24 18H25" stroke="#f3dba9" stroke-width="3"/><path d="M0-34v50" stroke="#f8e1b2" stroke-width="3"/><path class="sail" d="M-4-29-25 8h21Zm7-3V8h26Z" stroke="#f5e8c7" stroke-width="1.5"/><path d="M0-38h18l-6 6H0Z" fill="#f6ddab"/></g>
+            </defs>
+            <rect width="1100" height="630" rx="10" fill="url(#sea)"/>
+            <rect width="1100" height="630" fill="url(#waves)"/>
+            <g class="islands" aria-hidden="true">
+              <path d="M44 78Q15 129 67 150T150 128Q172 88 128 60T44 78Z" fill="#245e61" stroke="#76aea0" stroke-opacity=".3" stroke-width="12"/>
+              <path d="M54 88Q36 126 76 133T131 115Q148 85 110 79T54 88Z" fill="#599183"/>
+              <path d="M587 377Q539 406 568 453T663 469Q709 443 673 400T587 377Z" fill="#265d62" stroke="#6bafa1" stroke-opacity=".35" stroke-width="12"/>
+              <path d="M584 395Q561 424 586 449T648 451Q678 425 650 405T584 395Z" fill="#5c9380"/>
+              <path d="M957 403Q920 418 917 472T965 550Q1026 565 1062 517T1057 432Q1023 391 957 403Z" fill="#76b09b" stroke="#9cc1a6" stroke-opacity=".4" stroke-width="14"/>
+              <path d="M967 423Q938 442 941 482T980 532Q1024 540 1044 504T1036 447Q1019 420 967 423Z" fill="#d9ca8d"/>
+              <path d="M70 489Q39 516 65 558T139 574Q190 554 164 516T70 489Z" fill="#638f82" stroke="#93b39b" stroke-opacity=".4" stroke-width="9"/>
+              <g fill="none" stroke="#426b54" stroke-width="7" stroke-linecap="round"><path d="m101 112 5-24m0 0-15 2m15-2 11 10m-11-10-4-12"/><path d="m619 443 7-29m0 0-19-1m19 1 14 13m-14-13-5-16"/></g>
+            </g>
+            <g class="compass" transform="translate(710 485)" aria-hidden="true"><circle r="44" fill="none" stroke="#afd0c1" stroke-opacity=".25"/><path d="M0-47 11-10 0 0-11-10ZM0 47-11 10 0 0l11 10ZM-47 0l37-11L0 0l-10 11ZM47 0 10 11 0 0l10-11Z" fill="#a1c1b1" opacity=".45"/><text y="-57" text-anchor="middle">N</text></g>
+            <text class="map-whisper" x="128" y="241" transform="rotate(-8 128 241)">Mar de las ideas</text>
+            <text class="map-whisper" x="735" y="72">Vientos de cambio</text>
+            <g id="routeLayer" aria-hidden="true"></g>
+            <g id="chest" transform="translate(1000 492)" aria-hidden="true"><path d="M-22-10q0-25 23-25t23 25" fill="#b47f37" stroke="#513c2e" stroke-width="3"/><rect x="-26" y="-10" width="54" height="32" rx="4" fill="#a86935" stroke="#f9d991" stroke-width="3"/><path d="M-14-11v32M15-11v32" stroke="#f1c76e" stroke-width="4"/><rect x="-4" y="-4" width="12" height="14" rx="2" fill="#f9d991"/><path d="M0-48 2-62m-26 17-8-10m52 11 9-10" stroke="#f9d991" stroke-width="3" opacity=".7"/></g>
+            <text class="map-label" x="111" y="605" text-anchor="middle">PUERTO DE SALIDA</text>
+            <text class="map-label" x="983" y="594" text-anchor="middle">ISLA DEL TESORO</text>
+            <g id="shipsLayer"></g>
+          </svg>
+        </div>
+        <div class="map-footer"><p><span class="tiny-sail"></span>Selecciona una tripulación en el mapa o en su tarjeta.</p><strong id="arrivalCount">0 de 7 en la isla</strong></div>
+        <section class="helm" aria-label="Controles de navegación">
+          <div class="die" id="die" aria-label="Dado sin lanzar"><span>?</span></div>
+          <div class="helm-copy"><p class="eyebrow">AL TIMÓN</p><h3 id="selectedName">El Cormorán</h3><p id="selectedPosition">En el puerto · 24 casillas hasta el tesoro</p></div>
+          <div class="roll-actions"><button id="rollBtn" class="primary">Lanzar dado</button><button id="roundBtn" class="secondary">Ronda completa</button></div>
+        </section>
+        <div class="facilitator-bar"><button id="undoBtn" class="text-button"><svg><use href="#i-undo"/></svg>Deshacer</button><button id="shopBtn" class="text-button"><svg><use href="#i-coin"/></svg>Canjear monedas</button><button id="treasureBtn" class="text-button" hidden>Abrir el tesoro</button><span class="facilitator-note">Tú decides cuándo se lanza.</span></div>
+      </section>
+      <aside class="crew-panel" aria-labelledby="crewTitle">
+        <div class="crew-heading"><div><p class="eyebrow">UNA MISMA EXPEDICIÓN</p><h2 id="crewTitle">Las tripulaciones</h2></div><span id="crewTotal">07</span></div>
+        <div id="crewList" class="crew-list"></div>
+        <section class="timer-panel" aria-labelledby="timerTitle"><div><h3 id="timerTitle">Próxima tirada</h3><p id="timerHint">Un recordatorio para el próximo alto.</p></div><div class="timer-row"><label class="minutes-label"><input id="timerMinutes" type="number" min="1" max="60" value="15" aria-label="Minutos hasta la próxima tirada"><span>min</span></label><output id="timerValue" aria-live="off">15:00</output><button class="secondary" id="timerBtn">Iniciar</button><button id="timerResetBtn" class="icon-button" aria-label="Reiniciar el reloj">↺</button></div></section>
+        <button id="logBtn" class="log-button"><svg><use href="#i-book"/></svg>Ver la bitácora de la aventura</button>
+      </aside>
+    </main>
+    <footer class="page-footer"><span>Un paso, una idea, una nueva posibilidad.</span><button class="text-button" id="exportBtn"><svg><use href="#i-download"/></svg>Descargar respaldo</button></footer>
+  </div>
+  <dialog id="settingsDialog"><form id="settingsForm"><div class="dialog-heading"><div><p class="eyebrow">ANTES DE ZARPAR</p><h2>Prepara tu expedición</h2></div><button type="button" class="close-button" data-close aria-label="Cerrar">×</button></div><p class="muted">Escribe los nombres que eligieron los equipos. Cada barco comienza con 3 monedas.</p><label class="field">Barcos en el mapa<select id="teamCount"><option value="7">7 tripulaciones</option><option value="6">6 tripulaciones</option></select></label><div id="nameFields" class="name-fields"></div><div class="dialog-actions"><button class="primary" type="submit">Guardar tripulaciones</button></div><div class="advanced"><h3>Herramientas del relator</h3><p>Los cambios se guardan en este navegador. Descarga un respaldo para llevar la aventura a otro equipo.</p><div class="advanced-actions"><button class="secondary" type="button" id="importBtn">Importar respaldo</button><button class="danger-button" type="button" id="resetBtn">Reiniciar aventura</button></div><div class="manual-move"><span>Ajustar la posición del barco seleccionado</span><button class="secondary" type="button" id="backBtn">−1 casilla</button><button class="secondary" type="button" id="forwardBtn">+1 casilla</button></div></div></form></dialog>
+  <dialog id="storyDialog" class="story-dialog"><div class="dialog-heading"><p class="eyebrow">LA HISTORIA DE LA MAÑANA</p><button class="close-button" data-close aria-label="Cerrar">×</button></div><div class="story-tabs" role="group" aria-label="Escenas de la aventura"><button data-scene="0">La partida</button><button data-scene="1">La travesía</button><button data-scene="2">El tesoro</button></div><span class="story-emblem"><svg><use href="#i-flag"/></svg></span><h2 id="storyTitle"></h2><p id="storyText" class="story-text"></p><p id="storyTask" class="story-task"></p><button class="primary" id="useSceneBtn">Mostrar esta etapa en el tablero</button></dialog>
+  <dialog id="shopDialog"><div class="dialog-heading"><div><p class="eyebrow">EL MERCADO DEL PUERTO</p><h2>Ayudas para la travesía</h2></div><button class="close-button" data-close aria-label="Cerrar">×</button></div><p id="shopBalance" class="muted"></p><div id="shopItems" class="shop-items"></div><p class="small-note">Las pistas y consultas las entrega el relator. El viento a favor mueve el barco dos casillas.</p></dialog>
+  <dialog id="logDialog"><div class="dialog-heading"><h2>Bitácora de la aventura</h2><button class="close-button" data-close aria-label="Cerrar">×</button></div><ol id="logList" class="log-list"></ol></dialog>
+  <dialog id="helpDialog"><div class="dialog-heading"><h2>Listos para zarpar</h2><button class="close-button" data-close aria-label="Cerrar">×</button></div><ol class="help-list"><li><strong>Prepara.</strong> Elige seis o siete barcos y escribe los nombres de las tripulaciones.</li><li><strong>Navega.</strong> Selecciona un barco y lanza el dado. Con “Ronda completa”, cada barco que sigue en viaje obtiene su propia tirada.</li><li><strong>Reúne monedas.</strong> Usa el botón + junto a un equipo cuando completes una misión con él. Los canjes se descuentan de su saldo.</li><li><strong>Haz una pausa.</strong> El reloj avisa cuándo llega el próximo momento de lanzar. Las tiradas siempre las decides tú.</li><li><strong>Continúa.</strong> Los barcos llegan aunque la tirada supere las casillas restantes. La aventura sigue para los demás.</li></ol><p class="small-note">Puedes deshacer movimientos y canjes, descargar un respaldo e importarlo desde otro computador.</p></dialog>
+  <dialog id="confirmDialog"><div class="dialog-heading"><h2 id="confirmTitle"></h2><button class="close-button" data-close aria-label="Cerrar">×</button></div><p id="confirmText"></p><div class="dialog-actions"><button class="secondary" id="cancelConfirmBtn">Cancelar</button><button class="primary" id="acceptConfirmBtn">Continuar</button></div></dialog>
+  <dialog id="treasureDialog" class="treasure-dialog"><button class="close-button treasure-close" data-close aria-label="Cerrar">×</button><div class="treasure-glow" aria-hidden="true">✦</div><p class="eyebrow">TODAS LAS TRIPULACIONES EN LA ISLA</p><h2>El tesoro era lo que<br>podíamos crear juntos.</h2><p>Cada juego dejó una idea. Cada equipo la convirtió en una posibilidad para sus clases. La aventura continúa en lo que harán con ella.</p><button class="primary" data-close>Volver a la expedición</button></dialog>
+  <input id="importFile" type="file" accept=".json,application/json" hidden>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="liveAnnouncer" class="sr-only" aria-live="polite"></div>
+</body>
+</html>
