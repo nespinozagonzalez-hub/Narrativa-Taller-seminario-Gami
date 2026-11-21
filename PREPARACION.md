@@ -4,7 +4,7 @@
 
 | Recurso | Preparación | Estado |
 | --- | --- | --- |
-| Tablero pirata | 6 o 7 barcos, dado, ruta, narrativa, monedas y canjes | Implementado en `dist/` |
+| Tablero pirata | 6 o 7 barcos con nombres editables, dado, ruta ilustrada de 25 casillas ajustables, narrativa, monedas y canjes | Implementado en `dist/` |
 | Juegos de la ludoteca | Elegir títulos de reglas breves, agrupar materiales por mesa y ensayar la explicación | Por seleccionar con Nicolás |
 | Banderas | Una hoja por tripulación, plumones y un lugar visible para mostrarla | Material por reunir |
 | Ficha de análisis de juegos | Qué regla observamos, qué hicimos, qué nos motivó y cómo lo llevaríamos a clase | Por preparar para imprimir |
@@ -18,7 +18,7 @@
 - Elegir seis o siete tripulaciones según la asistencia. Sus nombres se escriben en el taller.
 - Elegir los momentos de tirada. Un punto de partida puede ser al cerrar una actividad o una misión; el reloj es opcional.
 - Definir cuánto dura cada juego y cuáles llevar de la ludoteca.
-- Revisar los canjes iniciales del prototipo: 1 moneda por pista; 2 por ejemplo; 3 por consulta; 3 por avanzar dos casillas. Se ajustan si Nicolás prefiere otra economía.
+- Mostrar los canjes del dado. Volver a tirar cuesta 2 monedas y duplicar el valor cuesta 3. Se puede elegir uno por tirada. En **Canjear ayudas** aparecen las pistas, ejemplos, consultas y el viento a favor.
 - Ensayar el tablero en el computador y el proyector que se usarán. Descargar el ZIP para contar con una copia sin conexión.
 
 ## Tarde
