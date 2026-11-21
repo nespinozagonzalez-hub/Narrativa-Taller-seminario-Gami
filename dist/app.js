@@ -38,6 +38,13 @@
     5: [[14, 14], [40, 14], [27, 27], [14, 40], [40, 40]],
     6: [[14, 12], [40, 12], [14, 27], [40, 27], [14, 42], [40, 42]]
   };
+  const ROLL_TIME = 960;
+  const STEP_TIME = 235;
+  const STEP_PAUSE = 90;
+  const SELECT_SHIP = 'Selecciona un barco en el mapa o en su tarjeta.';
+  const routeGuide = $('routeGuide');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
   const initialTimer = () => ({ minutes: 15, remaining: 900000, deadline: 0 });
   let game = C.initial();
@@ -49,6 +56,8 @@
   let confirmAction;
   let loadWarning = '';
   let routePoints = [];
+  let routeDots = [];
+  let routePixels = 0;
   let drawnLength = 0;
   const shipElements = new Map();
   const cardElements = new Map();
@@ -100,20 +109,27 @@
   function coinText(count) { return count + (count === 1 ? ' moneda' : ' monedas'); }
   function atTreasure(team) { return team.position === game.routeLength; }
 
+  function saveAction(next) {
+    history.push(game);
+    history = history.slice(-30);
+    game = next;
+    persist();
+  }
+
+  function showArrivals(previous) {
+    const arrived = active().filter(team =>
+      atTreasure(team) && previous.teams[team.id - 1].position !== previous.routeLength
+    );
+    if (arrived.length) toast(arrived.map(C.teamName).join(', ') + ': ¡en la isla del tesoro!');
+  }
+
   function commit(action) {
     if (busy) return false;
     try {
       const previous = game;
-      const next = C.apply(game, action);
-      history.push(C.clone(previous));
-      history = history.slice(-30);
-      game = next;
-      persist();
+      saveAction(C.apply(previous, action));
       render();
-      const arrived = active().filter(team =>
-        atTreasure(team) && previous.teams[team.id - 1].position !== previous.routeLength
-      );
-      if (arrived.length) toast(arrived.map(C.teamName).join(', ') + ': ¡en la isla del tesoro!');
+      showArrivals(previous);
       return true;
     } catch (error) {
       toast(error.message);
@@ -128,22 +144,27 @@
     return element;
   }
 
+  function pointOnRoute(position) {
+    const point = routeGuide.getPointAtLength(routePixels * position / drawnLength);
+    return [point.x, point.y];
+  }
+
   function drawRoute() {
     if (drawnLength === game.routeLength) return;
     drawnLength = game.routeLength;
-    const curve = $('routeGuide');
-    const length = curve.getTotalLength();
+    routePixels = routeGuide.getTotalLength();
     const stops = document.createDocumentFragment();
     routePoints = [];
+    routeDots = [];
     for (let step = 0; step <= drawnLength; step++) {
-      const point = curve.getPointAtLength(length * step / drawnLength);
-      routePoints.push([point.x, point.y]);
+      const [x, y] = pointOnRoute(step);
+      routePoints.push([x, y]);
       const major = step % 5 === 0 || step === drawnLength;
-      svg('circle', {
-        cx: point.x, cy: point.y, r: major ? 15 : 6.5,
+      routeDots.push(svg('circle', {
+        cx: x, cy: y, r: major ? 15 : 6.5,
         class: major ? 'route-dot major' : 'route-dot'
-      }, stops);
-      if (major) svg('text', { x: point.x, y: point.y, class: 'route-number' }, stops).textContent = step;
+      }, stops));
+      if (major) svg('text', { x, y, class: 'route-number' }, stops).textContent = step;
     }
     $('routeStops').replaceChildren(stops);
     $('oceanMap').setAttribute('aria-label', 'Mapa con ' + drawnLength + ' casillas entre el puerto de salida y la isla del tesoro');
@@ -223,8 +244,7 @@
     render();
   }
 
-  function drawDie(face) {
-    const die = $('die');
+  function drawDie(face, die = $('die')) {
     die.replaceChildren();
     if (face) {
       const element = svg('svg', { viewBox: '0 0 54 54', 'aria-hidden': 'true' }, die);
@@ -244,13 +264,41 @@
     return 'Dado ' + roll.face;
   }
 
-  function renderTeams() {
-    const occupied = new Map();
-    for (const team of active()) {
-      if (!occupied.has(team.position)) occupied.set(team.position, []);
-      occupied.get(team.position).push(team.id);
-    }
+  function fleetPositions(teams) {
+    return new Map(teams.map(team => [team.id, team.position]));
+  }
 
+  function fleetOffsets(positions) {
+    const occupied = new Map();
+    for (const [id, position] of positions) {
+      if (!occupied.has(position)) occupied.set(position, []);
+      occupied.get(position).push(id);
+    }
+    const offsets = new Map();
+    for (const ships of occupied.values()) {
+      const radius = ships.length > 4 ? 50 : 29 + ships.length * 3;
+      ships.forEach((id, index) => {
+        const angle = -Math.PI / 2 + 2 * Math.PI * index / ships.length;
+        offsets.set(id, ships.length === 1 ? [0, 0] : [Math.cos(angle) * radius, Math.sin(angle) * radius]);
+      });
+    }
+    return offsets;
+  }
+
+  function placeShip(id, position, dx, dy) {
+    const [x, y] = routePoints[position] || pointOnRoute(position);
+    shipElements.get(id).setAttribute('transform', 'translate(' + (x + dx).toFixed(1) + ' ' + (y + dy).toFixed(1) + ')');
+  }
+
+  function showCrewPosition(card, position) {
+    card.querySelector('.position').textContent =
+      position === game.routeLength ? 'En la isla' : position + ' / ' + game.routeLength;
+    card.querySelector('.crew-progress span').style.width = (position / game.routeLength * 100) + '%';
+  }
+
+  function renderTeams() {
+    const positions = fleetPositions(active());
+    const offsets = fleetOffsets(positions);
     for (const team of game.teams) {
       const visible = team.id <= game.count;
       const card = cardElements.get(team.id);
@@ -275,25 +323,14 @@
       card.querySelector('.crew-name').textContent = primaryName;
       crewShipName.hidden = !hasTwoNames;
       crewShipName.textContent = hasTwoNames ? team.shipName : '';
-      card.querySelector('.position').textContent = isArrived ? 'En la isla' : team.position + ' / ' + game.routeLength;
+      showCrewPosition(card, team.position);
       card.querySelector('.last-roll').textContent = rollLabel(team.lastRoll);
       card.querySelector('.balance').textContent = team.coins;
       card.querySelector('.balance').setAttribute('aria-label', coinText(team.coins));
       const add = card.querySelector('.coin-add');
       add.setAttribute('aria-label', 'Dar una moneda a ' + primaryName);
       add.disabled = busy || team.coins >= 999;
-      card.querySelector('.crew-progress span').style.width = (team.position / game.routeLength * 100) + '%';
-
-      const passengers = occupied.get(team.position);
-      let [x, y] = routePoints[team.position];
-      if (passengers.length > 1) {
-        const offset = passengers.indexOf(team.id);
-        const angle = -Math.PI / 2 + 2 * Math.PI * offset / passengers.length;
-        const radius = passengers.length > 4 ? 50 : 29 + passengers.length * 3;
-        x += Math.cos(angle) * radius;
-        y += Math.sin(angle) * radius;
-      }
-      ship.setAttribute('transform', 'translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ')');
+      placeShip(team.id, team.position, ...offsets.get(team.id));
       ship.classList.toggle('selected', isSelected);
       ship.setAttribute('aria-pressed', String(isSelected));
       ship.setAttribute('aria-label', fullName + ', casilla ' + team.position + ' de ' + game.routeLength);
@@ -301,18 +338,22 @@
     }
   }
 
+  function showSelectedPosition(position) {
+    const distance = game.routeLength - position;
+    $('selectedPosition').textContent = distance === 0
+      ? '¡Esta tripulación ya llegó al tesoro!'
+      : (position ? 'Casilla ' + position : 'En el puerto') +
+        ' · ' + distance + (distance === 1 ? ' casilla hasta el tesoro' : ' casillas hasta el tesoro');
+  }
+
   function render() {
     drawRoute();
     renderTeams();
     const team = selected();
     const arrived = active().filter(atTreasure).length;
-    const distance = game.routeLength - team.position;
 
     $('selectedName').textContent = C.teamName(team);
-    $('selectedPosition').textContent = distance === 0
-      ? '¡Esta tripulación ya llegó al tesoro!'
-      : (team.position ? 'Casilla ' + team.position : 'En el puerto') +
-        ' · ' + distance + (distance === 1 ? ' casilla hasta el tesoro' : ' casillas hasta el tesoro');
+    showSelectedPosition(team.position);
     $('rollOutcome').textContent = rollLabel(team.lastRoll);
     $('rollOutcome').hidden = !team.lastRoll || team.lastRoll.mode === 'roll';
     $('selectedCoins').textContent = coinText(team.coins);
@@ -330,7 +371,9 @@
     $('forwardBtn').disabled = busy || atTreasure(team);
     $('rerollBtn').disabled = busy || Boolean(C.buyProblem(game, team, 'reroll'));
     $('doubleBtn').disabled = busy || Boolean(C.buyProblem(game, team, 'double'));
-    for (const id of ['shopBtn', 'settingsBtn', 'editNamesBtn', 'routeBtn', 'storyBtn']) $(id).disabled = busy;
+    for (const id of ['shopBtn', 'settingsBtn', 'editNamesBtn', 'routeBtn', 'storyBtn', 'helpBtn', 'logBtn', 'exportBtn']) {
+      $(id).disabled = busy;
+    }
     $('treasureBtn').hidden = arrived !== game.count;
     $('treasureBtn').disabled = busy;
     document.body.classList.toggle('is-busy', busy);
@@ -343,19 +386,142 @@
     return sample[0] % 6 + 1;
   }
 
-  async function animateRoll() {
+  function showRoundResults(teams) {
+    const list = $('roundResults');
+    list.replaceChildren(...teams.map(team => {
+      const entry = document.createElement('li');
+      const name = document.createElement('span');
+      const face = document.createElement('strong');
+      entry.style.setProperty('--ship-color', C.COLORS[team.id - 1]);
+      name.textContent = C.teamName(team);
+      face.textContent = team.lastRoll.face;
+      entry.append(name, face);
+      return entry;
+    }));
+    list.hidden = false;
+  }
+
+  function describeRoll(before, after) {
+    const roll = after.lastRoll;
+    const distance = after.position - before.position;
+    const result = roll.mode === 'double'
+      ? roll.face + ' × 2 = ' + C.rollValue(roll)
+      : roll.mode === 'reroll' ? 'Salió ' + roll.face + ' en vez de ' + before.lastRoll.face : 'Salió ' + roll.face;
+    if (distance === 0) return result + ' · Se queda en la misma casilla';
+    const steps = Math.abs(distance);
+    const movement = (distance > 0 ? 'Avanza ' : 'Retrocede ') + steps + (steps === 1 ? ' casilla' : ' casillas');
+    return result + ' · ' + movement;
+  }
+
+  async function revealDice(previous, teamIds, mode) {
+    const overlay = $('rollOverlay');
+    const stage = overlay.firstElementChild;
+    const die = $('largeDie');
+    const teams = teamIds.map(id => game.teams[id - 1]);
+    const lead = teams.find(team => team.id === game.selected) || teams[0];
+    const isRound = mode === 'rollAll';
+    const label = { roll: 'Lanzamiento del dado', rollAll: 'Ronda ' + game.round, double: 'Tirada duplicada', reroll: 'Nueva tirada' };
+    const rolling = mode !== 'double' && !reduceMotion.matches;
+    $('rollStageLabel').textContent = label[mode];
+    $('rollStageTeam').textContent = C.teamName(lead);
+    $('rollStageResult').textContent = rolling ? 'Lanzando…' : '';
+    $('roundResults').hidden = true;
+    drawDie(rolling ? randomDie() : lead.lastRoll.face, die);
+    overlay.hidden = false;
+    let faces;
+    try {
+      if (rolling) {
+        stage.classList.add('rolling');
+        faces = setInterval(() => drawDie(randomDie(), die), 95);
+        await wait(ROLL_TIME);
+        clearInterval(faces);
+        stage.classList.remove('rolling');
+      }
+      drawDie(lead.lastRoll.face, die);
+      stage.classList.add('revealed');
+      const result = describeRoll(previous.teams[lead.id - 1], lead);
+      $('rollStageResult').textContent = isRound ? 'Salió ' + lead.lastRoll.face : result;
+      if (isRound) showRoundResults(teams);
+      announce(isRound ? 'Ronda ' + game.round + '. ' +
+        teams.map(team => C.teamName(team) + ' sacó ' + team.lastRoll.face).join('. ') : C.teamName(lead) + '. ' + result);
+      await wait(isRound ? 1600 : 1040);
+    } finally {
+      clearInterval(faces);
+      stage.classList.remove('rolling', 'revealed');
+      overlay.hidden = true;
+    }
+  }
+
+  function glideOneStep(start, end) {
+    const startOffsets = fleetOffsets(start);
+    const endOffsets = fleetOffsets(end);
+    return new Promise(resolve => {
+      let startedAt;
+      function frame(time) {
+        startedAt ??= time;
+        const fraction = Math.min(1, (time - startedAt) / STEP_TIME);
+        const ease = fraction * fraction * (3 - 2 * fraction);
+        for (const [id, from] of start) {
+          const [x0, y0] = startOffsets.get(id);
+          const [x1, y1] = endOffsets.get(id);
+          placeShip(id, from + (end.get(id) - from) * ease, x0 + (x1 - x0) * ease, y0 + (y1 - y0) * ease);
+        }
+        if (fraction === 1 || document.hidden) resolve();
+        else requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+
+  async function sailFleet(previous, mode) {
+    let positions = fleetPositions(previous.teams.slice(0, previous.count));
+    const targets = fleetPositions(active());
+    const steps = Math.max(...Array.from(positions, ([id, from]) => Math.abs(targets.get(id) - from)));
+    const captain = mode === 'rollAll' ? 'Flota en movimiento' : C.teamName(selected());
+    if (!steps) return;
+    for (const [id, position] of positions) {
+      shipElements.get(id).classList.toggle('sailing', position !== targets.get(id));
+    }
+    drawDie(selected().lastRoll?.face);
+    for (let step = 1; step <= steps && !document.hidden && !reduceMotion.matches; step++) {
+      const next = new Map(Array.from(positions, ([id, from]) => [id, from + Math.sign(targets.get(id) - from)]));
+      const touched = new Set(Array.from(next).filter(([id, stop]) => stop !== positions.get(id)).map(([, stop]) => stop));
+      $('mapMessage').textContent = captain + ' · Paso ' + step + ' de ' + steps;
+      await glideOneStep(positions, next);
+      for (const stop of touched) routeDots[stop].classList.add('current-step');
+      for (const [id, stop] of next) showCrewPosition(cardElements.get(id), stop);
+      showSelectedPosition(next.get(game.selected));
+      await wait(STEP_PAUSE);
+      for (const stop of touched) routeDots[stop].classList.remove('current-step');
+      positions = next;
+    }
+  }
+
+  async function playDice(action, teamIds, mode) {
+    const previous = game;
+    let next;
+    try {
+      next = C.apply(previous, action);
+    } catch (error) {
+      toast(error.message);
+      return false;
+    }
+    const trigger = document.activeElement;
     busy = true;
     render();
-    $('die').classList.add('rolling');
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const wiggle = reducedMotion ? null : setInterval(() => drawDie(randomDie()), 90);
+    saveAction(next);
     try {
-      await new Promise(resolve => setTimeout(resolve, reducedMotion ? 140 : 640));
+      await revealDice(previous, teamIds, mode);
+      await sailFleet(previous, mode);
     } finally {
-      clearInterval(wiggle);
-      $('die').classList.remove('rolling');
+      $('mapMessage').textContent = SELECT_SHIP;
+      for (const ship of shipElements.values()) ship.classList.remove('sailing');
       busy = false;
+      render();
+      if (document.activeElement === document.body && trigger && !trigger.disabled) trigger.focus({ preventScroll: true });
+      showArrivals(previous);
     }
+    return true;
   }
 
   async function roll(all) {
@@ -363,12 +529,8 @@
     const moving = (all ? active() : [selected()]).filter(team => !atTreasure(team));
     if (!moving.length) return;
     const dice = Object.fromEntries(moving.map(team => [team.id, randomDie()]));
-    await animateRoll();
-    if (commit({ type: all ? 'rollAll' : 'roll', dice })) {
-      announce(all
-        ? 'Ronda ' + game.round + ' completada. Consulta el resultado de cada tripulación.'
-        : C.teamName(selected()) + ' sacó ' + dice[selected().id] + ' y avanzó a la casilla ' + selected().position + '.');
-    }
+    const type = all ? 'rollAll' : 'roll';
+    await playDice({ type, dice }, moving.map(team => team.id), type);
   }
 
   async function useRollUpgrade(key) {
@@ -377,11 +539,8 @@
     const issue = C.buyProblem(game, team, key);
     if (issue) return;
     const action = { type: 'buy', id: team.id, item: key };
-    if (key === 'reroll') {
-      action.face = randomDie();
-      await animateRoll();
-    }
-    if (commit(action)) {
+    if (key === 'reroll') action.face = randomDie();
+    if (await playDice(action, [team.id], key)) {
       const updated = game.teams[team.id - 1];
       const summary = rollLabel(updated.lastRoll) + (atTreasure(updated) ? ' · ¡En la isla!' : ' · Casilla ' + updated.position);
       toast(summary + ' · −' + coinText(C.SHOP[key].cost));

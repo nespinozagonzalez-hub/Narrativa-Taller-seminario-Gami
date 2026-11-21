@@ -126,6 +126,7 @@ button svg, .brand-icon svg, .dice-currency svg, .crew-coins svg {
 .route-dash { fill: none; stroke: #c7ae70; stroke-width: 3; stroke-linecap: round; stroke-dasharray: 5 9; }
 .route-dot { fill: #254e4c; stroke: #efcf8c; stroke-width: 2.5; }
 .route-dot.major { fill: #192f35; stroke: #fadd99; stroke-width: 3; }
+.route-dot.current-step { fill: #d8a74d; stroke: #fff0c0; filter: drop-shadow(0 0 7px #ffcb6b); }
 .route-number {
   dominant-baseline: central;
   text-anchor: middle;
@@ -148,10 +149,11 @@ button svg, .brand-icon svg, .dice-currency svg, .crew-coins svg {
   font-weight: bold;
 }
 .chest-halo { fill: #f5d785; opacity: .33; }
-.ship { cursor: pointer; outline: none; transition: transform .85s cubic-bezier(.24,.74,.28,1); }
+.ship { cursor: pointer; outline: none; transition: transform .3s ease-in-out; }
 .ship-art { filter: drop-shadow(0 3px 3px #001418); }
 .ship .select-ring { opacity: 0; fill: #061d2055; stroke: var(--gold); stroke-width: 2.5; stroke-dasharray: 4 4; }
 .ship.selected .select-ring, .ship:focus-visible .select-ring { opacity: 1; }
+.ship.sailing .select-ring { opacity: 1; stroke: var(--ship-color); }
 .ship .hit-area { fill: transparent; }
 .ship-color { fill: var(--ship-color); stroke: #132a2e; stroke-width: 2; }
 .ship-number {
@@ -164,7 +166,9 @@ button svg, .brand-icon svg, .dice-currency svg, .crew-coins svg {
   font-family: Arial, sans-serif;
 }
 .is-busy #shipsLayer { pointer-events: none; }
+.is-busy .ship { transition: none; }
 .map-footer { justify-content: space-between; min-height: 42px; gap: 8px; padding: 5px 16px; color: var(--muted); font-size: .875rem; }
+.is-busy #mapMessage { color: var(--gold); font-weight: bold; }
 .arrival { gap: 9px; }
 .arrival strong { color: #e9ead7; font-weight: normal; white-space: nowrap; }
 #treasureBtn { color: var(--gold); }
@@ -185,8 +189,95 @@ button svg, .brand-icon svg, .dice-currency svg, .crew-coins svg {
   font-weight: bold;
 }
 .die svg { width: 49px; height: 49px; fill: currentColor; }
-.die.rolling { animation: die-roll .16s infinite alternate; }
-@keyframes die-roll { from { transform: rotate(-9deg); } to { transform: rotate(9deg); } }
+
+.roll-overlay {
+  position: fixed;
+  z-index: 35;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: #061b24db;
+  backdrop-filter: blur(4px);
+  animation: roll-enter .24s ease-out;
+}
+.roll-stage {
+  width: min(100%, 680px);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: clamp(14px, 3vh, 34px) clamp(14px, 5vw, 42px);
+  border: 1px solid #a68650;
+  border-radius: 22px;
+  text-align: center;
+  background: radial-gradient(ellipse at 50% 43%, #5e543b 0%, #18363d 50%, #102932 78%);
+  box-shadow: 0 24px 64px #0009;
+}
+.roll-stage .eyebrow { color: var(--gold); }
+.roll-stage-team {
+  margin-top: 6px;
+  font-family: Georgia, serif;
+  font-size: clamp(1.2rem, 3vw, 2rem);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.roll-stage-tray {
+  display: grid;
+  place-items: center;
+  padding-block: clamp(16px, 4vh, 38px);
+  perspective: 620px;
+}
+.large-die {
+  width: clamp(84px, min(25vw, 24vh), 178px);
+  height: auto;
+  aspect-ratio: 1;
+  border: 3px solid #fff2cd;
+  border-radius: 19%;
+  background: linear-gradient(150deg, #fff5dc, #f1dba9);
+  box-shadow: inset 0 -4px 12px #b081422a, 0 10px 0 #b69255, 0 24px 35px #06171a99;
+  font-size: clamp(2.2rem, 7vw, 5rem);
+}
+.large-die svg { width: 83%; height: 83%; }
+.roll-stage.rolling .large-die { animation: die-tumble .96s both; }
+.roll-stage.revealed .large-die { animation: die-settle .21s ease-out; }
+.roll-stage-result {
+  min-height: 2.5rem;
+  color: #ffe4a8;
+  font-size: clamp(1.05rem, 2.5vw, 1.5rem);
+  line-height: 1.25;
+  font-weight: bold;
+}
+.round-results {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.round-results li {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid #516665;
+  border-radius: 6px;
+  background: #112f38;
+  font-size: .875rem;
+  text-align: left;
+}
+.round-results li span { min-width: 0; overflow-wrap: anywhere; }
+.round-results strong { min-width: 24px; border-radius: 4px; padding: 2px 4px; color: #142b32; background: var(--ship-color); text-align: center; }
+@keyframes roll-enter { from { opacity: 0; } to { opacity: 1; } }
+@keyframes die-tumble {
+  0% { transform: translate3d(-44px, -24px, -120px) rotateX(40deg) rotateZ(-30deg); }
+  28% { transform: translate3d(18px, -35px, 48px) rotateX(180deg) rotateZ(35deg); }
+  55% { transform: translate3d(-11px, 6px, 10px) rotateX(295deg) rotateZ(-19deg); }
+  76% { transform: translate3d(4px, -13px, 0) rotateX(350deg) rotateZ(7deg); }
+  100% { transform: translate3d(0, 0, 0) rotateX(360deg) rotateZ(0); }
+}
+@keyframes die-settle { from { transform: scale(.94); } to { transform: scale(1); } }
 .helm-copy { min-width: 0; flex: 1; }
 .helm-copy .eyebrow { margin-bottom: 3px; font-size: .7rem; }
 .helm-copy h3 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1.125rem; }
@@ -294,7 +385,7 @@ button svg, .brand-icon svg, .dice-currency svg, .crew-coins svg {
 .crew-coins svg { width: 15px; height: 15px; }
 .coin-add { width: 30px; min-height: 32px; margin-left: 2px; font-size: 1.13rem; }
 .crew-progress { position: absolute; bottom: 1px; left: 7px; right: 7px; height: 2px; overflow: hidden; background: #3a5b60; border-radius: 2px; }
-.crew-progress span { display: block; width: 0; height: 100%; background: var(--ship-color); transition: width .65s; }
+.crew-progress span { display: block; width: 0; height: 100%; background: var(--ship-color); transition: width .24s; }
 .timer-panel { margin-top: 13px; padding-top: 11px; border-top: 1px solid var(--line); }
 .timer-panel p { margin: 5px 0 0; color: var(--muted); font-size: .8125rem; line-height: 1.45; }
 .timer-row { gap: 5px; margin-top: 8px; }

@@ -7,9 +7,9 @@
   <meta name="description" content="Tablero pirata del taller de gamificación. Navega por el mapa con tu tripulación, lanza el dado y usa tus monedas para llegar al tesoro.">
   <title>La ruta del tesoro · Taller de gamificación</title>
   <link rel="icon" href="./assets/cofre-pirata.webp" type="image/webp">
-  <link rel="stylesheet" href="styles.css?v=2">
+  <link rel="stylesheet" href="styles.css?v=3">
   <script src="core.js?v=2" defer></script>
-  <script src="app.js?v=2" defer></script>
+  <script src="app.js?v=3" defer></script>
 </head>
 <body>
   <svg class="icon-library" aria-hidden="true">
@@ -66,10 +66,17 @@
           <svg id="oceanMap" class="ocean" viewBox="0 0 1120 630" role="group"
                aria-label="Mapa con 25 casillas entre el puerto de salida y la isla del tesoro">
             <defs>
-              <path id="routeGuide" d="M 198 516 C 320 535 487 507 472 423
-                C 459 358 341 385 327 304 C 315 235 413 185 510 184
-                C 630 181 649 310 744 298 C 810 289 810 252 868 258
-                C 948 267 928 340 868 361 C 788 390 771 441 866 468"/>
+              <path id="routeGuide" d="M 198 516
+                C 286 540 369 521 375 462
+                C 381 399 279 392 214 360
+                C 145 326 108 291 121 245
+                C 132 201 181 204 221 170
+                C 264 134 278 84 380 84
+                C 479 84 488 173 582 174
+                C 669 176 717 86 814 98
+                C 898 108 963 168 942 229
+                C 920 293 775 280 724 342
+                C 678 398 747 505 866 468"/>
             </defs>
             <rect width="1120" height="630" fill="#082c34"/>
             <image href="./assets/mapa-pirata.webp" width="1120" height="630" preserveAspectRatio="none" aria-hidden="true"/>
@@ -98,7 +105,7 @@
           </svg>
         </div>
         <div class="map-footer">
-          <p>Selecciona un barco en el mapa o en su tarjeta.</p>
+          <p id="mapMessage">Selecciona un barco en el mapa o en su tarjeta.</p>
           <div class="arrival"><strong id="arrivalCount">0 de 7 en la isla</strong><button id="treasureBtn" class="text-button" hidden>Abrir el tesoro</button></div>
         </div>
 
@@ -169,6 +176,18 @@
       <span id="saveStatus">Guardado en este navegador</span>
       <button class="text-button" id="exportBtn"><svg aria-hidden="true"><use href="#i-download"/></svg>Descargar respaldo</button>
     </footer>
+  </div>
+
+  <div id="rollOverlay" class="roll-overlay" aria-hidden="true" hidden>
+    <div class="roll-stage">
+      <p id="rollStageLabel" class="eyebrow"></p>
+      <p id="rollStageTeam" class="roll-stage-team"></p>
+      <div class="roll-stage-tray">
+        <div id="largeDie" class="die large-die"></div>
+      </div>
+      <p id="rollStageResult" class="roll-stage-result"></p>
+      <ul id="roundResults" class="round-results" hidden></ul>
+    </div>
   </div>
 
   <dialog id="settingsDialog" aria-labelledby="settingsTitle">
