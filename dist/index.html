@@ -7,9 +7,9 @@
   <meta name="description" content="Tablero pirata del taller de gamificación. Navega por el mapa con tu tripulación, lanza el dado y usa tus monedas para llegar al tesoro.">
   <title>La ruta del tesoro · Taller de gamificación</title>
   <link rel="icon" href="./assets/cofre-pirata.webp" type="image/webp">
-  <link rel="stylesheet" href="styles.css?v=3">
+  <link rel="stylesheet" href="styles.css?v=4">
   <script src="core.js?v=2" defer></script>
-  <script src="app.js?v=3" defer></script>
+  <script src="app.js?v=4" defer></script>
 </head>
 <body>
   <svg class="icon-library" aria-hidden="true">
@@ -24,46 +24,41 @@
       <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></symbol>
       <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 22V3c5-5 9 5 15 0v12c-6 5-10-5-15 0"/></symbol>
       <symbol id="i-pencil" viewBox="0 0 24 24"><path d="m4 16 12-12 4 4L8 20H4zm10-10 4 4"/></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></symbol>
     </defs>
   </svg>
   <div class="app">
-    <header class="topbar">
+    <header class="topbar parchment">
       <div class="brand">
-        <span class="brand-icon"><svg aria-hidden="true"><use href="#i-anchor"/></svg></span>
-        <div><p class="eyebrow">Taller de gamificación</p><h1>La ruta del tesoro</h1></div>
+        <span class="brand-icon" aria-hidden="true"><svg><use href="#i-anchor"/></svg></span>
+        <h1>La ruta del tesoro</h1>
       </div>
+      <p id="chapterLabel" class="eyebrow board-chapter">La tripulación se reúne</p>
       <nav class="toolbar" aria-label="Herramientas del taller">
-        <button class="quiet" id="storyBtn" aria-label="Narrativa" title="Narrativa">
-          <svg aria-hidden="true"><use href="#i-book"/></svg><span>Narrativa</span>
+        <button class="quiet" id="crewBtn" title="Tripulaciones" aria-label="Tripulaciones" aria-haspopup="dialog">
+          <svg aria-hidden="true"><use href="#i-flag"/></svg><span>Tripulaciones</span>
         </button>
-        <button class="quiet prepare-button" id="settingsBtn" aria-label="Preparar expedición" title="Preparar expedición">
-          <svg aria-hidden="true"><use href="#i-settings"/></svg><span>Preparar expedición</span>
+        <button class="quiet" id="optionsBtn" title="Opciones" aria-label="Opciones" aria-haspopup="dialog">
+          <svg aria-hidden="true"><use href="#i-settings"/></svg><span>Opciones</span>
         </button>
         <button class="icon-button" id="fullscreenBtn" aria-label="Activar pantalla completa" title="Pantalla completa">
           <svg aria-hidden="true"><use href="#i-expand"/></svg>
         </button>
-        <button class="icon-button" id="helpBtn" aria-label="Cómo usar el tablero" title="Cómo jugar">
-          <svg aria-hidden="true"><use href="#i-help"/></svg>
-        </button>
       </nav>
     </header>
 
-    <main class="dashboard">
-      <section class="map-panel" aria-labelledby="mapTitle">
-        <div class="panel-heading map-heading">
-          <div class="map-title">
-            <p class="eyebrow chapter"><span class="chapter-dot"></span><span id="chapterLabel">La tripulación se reúne</span></p>
-            <h2 id="mapTitle">Mapa de la expedición</h2>
-          </div>
-          <div class="map-stats">
-            <button class="route-button" id="routeBtn" aria-label="Editar el largo del recorrido">
-              <span id="routeLengthLabel">25 casillas</span><svg aria-hidden="true"><use href="#i-pencil"/></svg>
+    <main class="dashboard" aria-label="Mapa de la expedición">
+        <div class="board-status">
+          <div class="map-stats map-plaque parchment"><span id="roundLabel">Ronda 0</span><span id="routeLengthLabel">25 casillas</span></div>
+          <div class="arrival map-plaque parchment">
+            <span id="arrivalCount">0 de 7 en la isla</span>
+            <button id="treasureBtn" class="text-button" aria-label="Ver tesoro" aria-haspopup="dialog" hidden>
+              <img src="./assets/cofre-pirata.webp" alt="" width="28" height="28"><span>Ver tesoro</span>
             </button>
-            <span id="roundLabel">Ronda 0</span>
           </div>
         </div>
         <div class="ocean-wrap">
-          <svg id="oceanMap" class="ocean" viewBox="0 0 1120 630" role="group"
+          <svg id="oceanMap" class="ocean" viewBox="0 0 1120 630" preserveAspectRatio="xMidYMid meet" role="group"
                aria-label="Mapa con 25 casillas entre el puerto de salida y la isla del tesoro">
             <defs>
               <path id="routeGuide" d="M 198 516
@@ -91,92 +86,91 @@
               <use href="#routeGuide" class="route-dash"/>
               <g id="routeStops"></g>
             </g>
-            <g class="harbor-label" aria-hidden="true">
-              <rect x="44" y="571" width="223" height="36" rx="8"/>
-              <text x="155.5" y="590">PUERTO DE SALIDA</text>
+            <g class="chart-label" aria-hidden="true">
+              <rect x="44" y="571" width="223" height="38" rx="2"/>
+              <rect x="48" y="575" width="215" height="30" rx="1" class="chart-label-inset"/>
+              <text x="155.5" y="592">Puerto de salida</text>
             </g>
-            <g class="island-label" aria-hidden="true">
+            <g class="chart-label" aria-hidden="true">
               <circle cx="933" cy="465" r="39" class="chest-halo"/>
               <image href="./assets/cofre-pirata.webp" x="896" y="417" width="74" height="75"/>
-              <rect x="841" y="545" width="222" height="36" rx="8"/>
-              <text x="952" y="564">ISLA DEL TESORO</text>
+              <rect x="841" y="545" width="222" height="38" rx="2"/>
+              <rect x="845" y="549" width="214" height="30" rx="1" class="chart-label-inset"/>
+              <text x="952" y="566">Isla del tesoro</text>
             </g>
             <g id="shipsLayer"></g>
           </svg>
         </div>
-        <div class="map-footer">
-          <p id="mapMessage">Selecciona un barco en el mapa o en su tarjeta.</p>
-          <div class="arrival"><strong id="arrivalCount">0 de 7 en la isla</strong><button id="treasureBtn" class="text-button" hidden>Abrir el tesoro</button></div>
+        <div class="board-notices">
+          <p id="mapMessage" class="map-plaque parchment" hidden></p>
+          <button id="timerBadge" class="map-plaque parchment" aria-label="Ver reloj de la tirada" aria-haspopup="dialog" hidden>
+            <svg aria-hidden="true"><use href="#i-clock"/></svg><span id="timerBadgeValue"></span>
+          </button>
         </div>
-
-        <section class="helm" aria-label="Controles de navegación">
-          <div class="die" id="die" aria-label="Dado sin lanzar"><span>?</span></div>
-          <div class="helm-copy">
-            <p class="eyebrow">Al timón</p>
-            <h3 id="selectedName">El Cormorán</h3>
-            <p id="selectedPosition">En el puerto · 25 casillas hasta el tesoro</p>
-            <p id="rollOutcome" class="roll-outcome" hidden></p>
-          </div>
-          <div class="roll-actions">
-            <button id="rollBtn" class="primary">Lanzar dado</button>
-            <button id="roundBtn" class="secondary">Ronda completa</button>
-          </div>
-        </section>
-
-        <section class="dice-market" aria-label="Canjes de la tirada">
-          <div class="dice-currency">
-            <div><svg aria-hidden="true"><use href="#i-coin"/></svg><strong id="selectedCoins">3 monedas</strong></div>
-            <p id="upgradeHint">Los canjes se activan después de lanzar.</p>
-          </div>
-          <div class="dice-cashouts">
-            <button id="rerollBtn" class="cashout" aria-label="Volver a tirar por 2 monedas" aria-describedby="upgradeHint" title="La nueva tirada sustituye a la anterior">
-              <span>Volver a tirar</span><span class="price">2 <svg aria-hidden="true"><use href="#i-coin"/></svg></span>
-            </button>
-            <button id="doubleBtn" class="cashout" aria-label="Duplicar tirada por 3 monedas" aria-describedby="upgradeHint" title="El valor de la última tirada se multiplica por dos">
-              <span>Duplicar tirada</span><span class="price">3 <svg aria-hidden="true"><use href="#i-coin"/></svg></span>
-            </button>
-          </div>
-        </section>
-
-        <div class="facilitator-bar">
-          <button id="undoBtn" class="text-button"><svg aria-hidden="true"><use href="#i-undo"/></svg>Deshacer</button>
-          <button id="shopBtn" class="text-button"><svg aria-hidden="true"><use href="#i-coin"/></svg>Canjear ayudas</button>
-          <div class="position-adjust" role="group" aria-label="Ajustar casillas de la tripulación seleccionada">
-            <span>Ajustar posición</span>
-            <button id="backBtn" class="stepper-button" title="Retroceder una casilla" aria-label="Retroceder una casilla">−1</button>
-            <button id="forwardBtn" class="stepper-button" title="Avanzar una casilla" aria-label="Avanzar una casilla">+1</button>
-          </div>
-        </div>
-      </section>
-
-      <aside class="crew-panel" aria-labelledby="crewTitle">
-        <div class="panel-heading crew-heading">
-          <h2 id="crewTitle">Tripulaciones</h2>
-          <button id="editNamesBtn" class="text-button"><svg aria-hidden="true"><use href="#i-pencil"/></svg>Editar nombres</button>
-        </div>
-        <div id="crewList" class="crew-list"></div>
-        <section class="timer-panel" aria-labelledby="timerTitle">
-          <h3 id="timerTitle">Próxima tirada</h3>
-          <div class="timer-row">
-            <label class="minutes-label">
-              <input id="timerMinutes" type="number" min="1" max="60" value="15" aria-label="Minutos hasta la próxima tirada">
-              <span>min</span>
-            </label>
-            <output id="timerValue" aria-live="off">15:00</output>
-            <button class="secondary" id="timerBtn">Iniciar</button>
-            <button id="timerResetBtn" class="icon-button" aria-label="Reiniciar el reloj" title="Reiniciar el reloj">↺</button>
-          </div>
-          <p id="timerHint">El reloj avisa cuándo volver al mapa.</p>
-        </section>
-        <button id="logBtn" class="log-button"><svg aria-hidden="true"><use href="#i-book"/></svg>Ver bitácora</button>
-      </aside>
     </main>
 
-    <footer class="page-footer">
-      <span id="saveStatus">Guardado en este navegador</span>
-      <button class="text-button" id="exportBtn"><svg aria-hidden="true"><use href="#i-download"/></svg>Descargar respaldo</button>
+    <footer class="helm parchment" aria-label="Controles de navegación">
+      <div class="die" id="die" aria-label="Dado sin lanzar"><span>?</span></div>
+      <div class="helm-copy">
+        <h2 id="selectedName">El Cormorán</h2>
+        <p id="selectedPosition">En el puerto · 25 casillas hasta el tesoro</p>
+        <p id="rollOutcome" class="roll-outcome" hidden></p>
+      </div>
+      <div class="roll-actions">
+        <button id="rollBtn" class="primary">Lanzar dado</button>
+        <button id="roundBtn" class="secondary">Ronda completa</button>
+        <button id="shopBtn" class="quiet coin-button" aria-label="Canjes y ayudas" aria-haspopup="dialog" title="Canjes y ayudas">
+          <svg aria-hidden="true"><use href="#i-coin"/></svg><span id="selectedCoins">3 monedas</span>
+        </button>
+      </div>
     </footer>
   </div>
+
+  <dialog id="optionsDialog" aria-labelledby="optionsTitle">
+    <div class="dialog-heading"><h2 id="optionsTitle">Opciones de la expedición</h2><button class="close-button" data-close aria-label="Cerrar">×</button></div>
+    <div class="options-grid">
+      <button class="secondary" id="settingsBtn" aria-haspopup="dialog"><svg aria-hidden="true"><use href="#i-settings"/></svg>Preparar expedición</button>
+      <button class="secondary" id="storyBtn" aria-haspopup="dialog"><svg aria-hidden="true"><use href="#i-book"/></svg>Narrativa</button>
+      <button class="secondary" id="timerOpenBtn" aria-haspopup="dialog"><svg aria-hidden="true"><use href="#i-clock"/></svg>Reloj de la tirada</button>
+      <button class="secondary" id="logBtn" aria-haspopup="dialog"><svg aria-hidden="true"><use href="#i-book"/></svg>Ver bitácora</button>
+      <button class="secondary" id="helpBtn" aria-haspopup="dialog"><svg aria-hidden="true"><use href="#i-help"/></svg>Cómo jugar</button>
+      <button class="secondary" id="undoBtn"><svg aria-hidden="true"><use href="#i-undo"/></svg>Deshacer</button>
+    </div>
+    <div class="position-adjust" role="group" aria-label="Ajustar casillas de la tripulación seleccionada">
+      <div><strong>Ajustar posición</strong><p id="adjustTeam" class="muted"></p></div>
+      <button id="backBtn" class="stepper-button" title="Retroceder una casilla" aria-label="Retroceder una casilla">−1</button>
+      <button id="forwardBtn" class="stepper-button" title="Avanzar una casilla" aria-label="Avanzar una casilla">+1</button>
+    </div>
+    <div class="backup-actions">
+      <p id="saveStatus" class="muted">Guardado en este navegador</p>
+      <button class="text-button" id="exportBtn"><svg aria-hidden="true"><use href="#i-download"/></svg>Descargar respaldo</button>
+    </div>
+  </dialog>
+
+  <dialog id="crewDialog" aria-labelledby="crewTitle">
+    <div class="dialog-heading"><h2 id="crewTitle">Tripulaciones</h2><button class="close-button" data-close aria-label="Cerrar">×</button></div>
+    <div class="crew-tools">
+      <p class="muted">Elige un barco o entrega monedas con el botón +.</p>
+      <button id="editNamesBtn" class="text-button" aria-haspopup="dialog"><svg aria-hidden="true"><use href="#i-pencil"/></svg>Editar nombres</button>
+    </div>
+    <div id="crewList" class="crew-list"></div>
+  </dialog>
+
+  <dialog id="timerDialog" aria-labelledby="timerTitle">
+    <div class="dialog-heading"><h2 id="timerTitle">Próxima tirada</h2><button class="close-button" data-close aria-label="Cerrar">×</button></div>
+    <div class="timer-panel">
+      <div class="timer-row">
+        <label class="minutes-label">
+          <input id="timerMinutes" type="number" min="1" max="60" value="15" aria-label="Minutos hasta la próxima tirada">
+          <span>min</span>
+        </label>
+        <output id="timerValue" aria-live="off">15:00</output>
+        <button class="secondary" id="timerBtn">Iniciar</button>
+        <button id="timerResetBtn" class="icon-button" aria-label="Reiniciar el reloj" title="Reiniciar el reloj">↺</button>
+      </div>
+      <p id="timerHint" class="muted">El reloj avisa cuándo volver al mapa.</p>
+    </div>
+  </dialog>
 
   <div id="rollOverlay" class="roll-overlay" aria-hidden="true" hidden>
     <div class="roll-stage">
@@ -236,8 +230,21 @@
   </dialog>
 
   <dialog id="shopDialog" aria-labelledby="shopTitle">
-    <div class="dialog-heading"><h2 id="shopTitle">Ayudas para la travesía</h2><button class="close-button" data-close aria-label="Cerrar">×</button></div>
+    <div class="dialog-heading"><h2 id="shopTitle">Canjes y ayudas</h2><button class="close-button" data-close aria-label="Cerrar">×</button></div>
     <p id="shopBalance" class="muted" tabindex="-1" aria-live="polite"></p>
+    <div class="dice-market">
+      <h3>Canjes de la tirada</h3>
+      <p id="upgradeHint" class="muted">Los canjes se activan después de lanzar.</p>
+      <div class="dice-cashouts">
+        <button id="rerollBtn" class="cashout" aria-describedby="upgradeHint" title="La nueva tirada sustituye a la anterior">
+          <span>Volver a tirar</span><strong>2 monedas</strong>
+        </button>
+        <button id="doubleBtn" class="cashout" aria-describedby="upgradeHint" title="El valor de la última tirada se multiplica por dos">
+          <span>Duplicar tirada</span><strong>3 monedas</strong>
+        </button>
+      </div>
+    </div>
+    <h3>Ayudas para la travesía</h3>
     <div id="shopItems" class="shop-items"></div>
   </dialog>
 
@@ -249,11 +256,11 @@
   <dialog id="helpDialog" aria-labelledby="helpTitle">
     <div class="dialog-heading"><h2 id="helpTitle">Listos para zarpar</h2><button class="close-button" data-close aria-label="Cerrar">×</button></div>
     <ol class="help-list">
-      <li><strong>Prepara la expedición.</strong> Elige seis o siete barcos, edita sus nombres y ajusta el largo de la ruta.</li>
+      <li><strong>Prepara la expedición.</strong> En Opciones, elige seis o siete barcos, edita sus nombres y ajusta el largo de la ruta.</li>
       <li><strong>Navega.</strong> Selecciona un barco y lanza el dado. En una ronda completa cada barco que sigue en viaje obtiene su propia tirada.</li>
       <li><strong>Usa tus monedas.</strong> Con 2 monedas puedes volver a tirar y quedarte con el nuevo resultado, aunque sea menor. Con 3 puedes duplicar el valor que sacaste. Puedes elegir un canje por tirada.</li>
-      <li><strong>Lleva el ritmo.</strong> El reloj marca el próximo alto. Usa −1 o +1 para mover manualmente la tripulación seleccionada.</li>
-      <li><strong>Reúne a todos.</strong> Los barcos llegan aunque saquen más que las casillas que faltan. Abre el tesoro cuando toda la flota esté en la isla.</li>
+      <li><strong>Lleva el ritmo.</strong> En Opciones encontrarás el reloj y los botones −1 y +1 para ajustar la posición del barco seleccionado.</li>
+      <li><strong>Descubre el tesoro.</strong> Cada tripulación que alcanza la isla recibe un saludo del capitán. Los barcos llegan aunque saquen más que las casillas que faltan.</li>
     </ol>
   </dialog>
 
@@ -263,16 +270,25 @@
     <div class="dialog-actions"><button class="secondary" id="cancelConfirmBtn">Cancelar</button><button class="primary" id="acceptConfirmBtn">Continuar</button></div>
   </dialog>
 
-  <dialog id="treasureDialog" class="treasure-dialog" aria-labelledby="treasureTitle">
+  <dialog id="treasureDialog" class="treasure-dialog" aria-labelledby="treasureTitle" aria-describedby="treasureTeams treasureLine">
     <button class="close-button treasure-close" data-close aria-label="Cerrar">×</button>
-    <img src="./assets/cofre-pirata.webp" alt="" width="170" height="170" class="treasure-art">
-    <p class="eyebrow">Todas las tripulaciones en la isla</p>
-    <h2 id="treasureTitle">El tesoro de la expedición</h2>
-    <p>Compartan una mecánica que se llevan y cómo la usarían en su próxima clase.</p>
-    <button class="primary" data-close>Volver al mapa</button>
+    <div class="treasure-scene">
+      <div class="treasure-illustration" aria-hidden="true">
+        <img src="./assets/capitan-del-tesoro.webp" alt="" width="360" height="360" class="captain-art">
+        <img src="./assets/cofre-pirata.webp" alt="" width="140" height="140" class="treasure-art">
+      </div>
+      <div class="treasure-copy">
+        <p class="eyebrow">Capitán Brújula</p>
+        <h2 id="treasureTitle">¡Tesoro descubierto!</h2>
+        <p id="treasureTeams" class="treasure-teams"></p>
+        <blockquote id="treasureLine"></blockquote>
+        <p id="treasureChallenge" class="treasure-challenge" hidden>Compartan una mecánica que se llevan y cómo la usarían en su próxima clase.</p>
+        <button class="primary" data-close autofocus>Volver al mapa</button>
+      </div>
+    </div>
   </dialog>
   <input id="importFile" type="file" accept=".json,application/json" hidden>
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="toast" class="toast" popover="manual" role="status" aria-live="polite"></div>
   <div id="liveAnnouncer" class="sr-only" aria-live="polite"></div>
 </body>
 </html>

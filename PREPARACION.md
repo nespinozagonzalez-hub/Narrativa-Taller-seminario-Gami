@@ -18,7 +18,7 @@
 - Elegir seis o siete tripulaciones según la asistencia. Sus nombres se escriben en el taller.
 - Elegir los momentos de tirada. Un punto de partida puede ser al cerrar una actividad o una misión; el reloj es opcional.
 - Definir cuánto dura cada juego y cuáles llevar de la ludoteca.
-- Mostrar los canjes del dado. Volver a tirar cuesta 2 monedas y duplicar el valor cuesta 3. Se puede elegir uno por tirada. En **Canjear ayudas** aparecen las pistas, ejemplos, consultas y el viento a favor.
+- Abrir **Canjes y ayudas** desde el saldo del tablero. Volver a tirar cuesta 2 monedas y duplicar el valor cuesta 3. Se puede elegir uno por tirada. El mismo menú reúne las pistas, ejemplos, consultas y el viento a favor.
 - Ensayar el tablero en el computador y el proyector que se usarán. Descargar el ZIP para contar con una copia sin conexión.
 
 ## Tarde

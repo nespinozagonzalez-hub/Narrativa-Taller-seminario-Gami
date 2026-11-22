@@ -41,7 +41,7 @@
   const ROLL_TIME = 960;
   const STEP_TIME = 235;
   const STEP_PAUSE = 90;
-  const SELECT_SHIP = 'Selecciona un barco en el mapa o en su tarjeta.';
+  const listNames = new Intl.ListFormat('es', { style: 'long', type: 'conjunction' });
   const routeGuide = $('routeGuide');
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -86,9 +86,14 @@
 
   function toast(message) {
     clearTimeout(toastTimeout);
-    $('toast').textContent = message;
-    $('toast').classList.add('visible');
-    toastTimeout = setTimeout(() => $('toast').classList.remove('visible'), 4800);
+    const notice = $('toast');
+    notice.textContent = message;
+    if (notice.showPopover && !notice.matches(':popover-open')) notice.showPopover();
+    notice.classList.add('visible');
+    toastTimeout = setTimeout(() => {
+      notice.classList.remove('visible');
+      if (notice.hidePopover) notice.hidePopover();
+    }, 4800);
   }
 
   function currentBackup() {
@@ -117,10 +122,24 @@
   }
 
   function showArrivals(previous) {
+    if (previous.routeLength !== game.routeLength) return;
     const arrived = active().filter(team =>
-      atTreasure(team) && previous.teams[team.id - 1].position !== previous.routeLength
+      atTreasure(team) && team.id <= previous.count &&
+      previous.teams[team.id - 1].position < game.routeLength
     );
-    if (arrived.length) toast(arrived.map(C.teamName).join(', ') + ': ¡en la isla del tesoro!');
+    if (arrived.length) showTreasure(arrived);
+  }
+
+  function showTreasure(teams) {
+    if (!teams.length) return;
+    const wholeFleet = active().every(atTreasure);
+    $('treasureTitle').textContent = wholeFleet ? '¡La flota encontró el tesoro!' : '¡Tesoro descubierto!';
+    $('treasureTeams').textContent = listNames.format(teams.map(C.teamName));
+    $('treasureLine').textContent = '«¡Por las siete mareas! Han encontrado un tesoro increíble. ' +
+      (wholeFleet ? '¡Que todo el puerto se entere de lo que logró esta flota!»'
+        : '¡Que ruede la voz y que las demás tripulaciones sigan el rumbo!»');
+    $('treasureChallenge').hidden = !wholeFleet;
+    open('treasureDialog');
   }
 
   function commit(action) {
@@ -203,7 +222,10 @@
       '<span class="balance"></span><button class="coin-add">+</button></div>' +
       '<div class="crew-progress" aria-hidden="true"><span></span></div>';
     card.querySelector('.crew-number').textContent = id;
-    card.querySelector('.crew-select').addEventListener('click', () => selectTeam(id));
+    card.querySelector('.crew-select').addEventListener('click', () => {
+      selectTeam(id);
+      $('crewDialog').close();
+    });
     card.querySelector('.coin-add').addEventListener('click', () => {
       if (commit({ type: 'coin', id, amount: 1 })) toast(C.teamName(game.teams[id - 1]) + ': +1 moneda.');
     });
@@ -332,7 +354,9 @@
       add.disabled = busy || team.coins >= 999;
       placeShip(team.id, team.position, ...offsets.get(team.id));
       ship.classList.toggle('selected', isSelected);
+      ship.setAttribute('tabindex', busy ? -1 : 0);
       ship.setAttribute('aria-pressed', String(isSelected));
+      ship.setAttribute('aria-disabled', String(busy));
       ship.setAttribute('aria-label', fullName + ', casilla ' + team.position + ' de ' + game.routeLength);
       ship.querySelector('title').textContent = fullName;
     }
@@ -357,6 +381,9 @@
     $('rollOutcome').textContent = rollLabel(team.lastRoll);
     $('rollOutcome').hidden = !team.lastRoll || team.lastRoll.mode === 'roll';
     $('selectedCoins').textContent = coinText(team.coins);
+    $('shopBtn').setAttribute('aria-label', 'Canjes y ayudas · ' + coinText(team.coins));
+    $('adjustTeam').textContent = C.teamName(team) + ' · ' +
+      (atTreasure(team) ? 'En la isla' : 'Casilla ' + team.position + ' de ' + game.routeLength);
     $('upgradeHint').textContent = C.rollProblem(game, team) ||
       (team.coins < C.SHOP.reroll.cost ? 'Necesitas al menos 2 monedas.' : 'Puedes usar un canje en esta tirada.');
     $('roundLabel').textContent = 'Ronda ' + game.round;
@@ -371,10 +398,10 @@
     $('forwardBtn').disabled = busy || atTreasure(team);
     $('rerollBtn').disabled = busy || Boolean(C.buyProblem(game, team, 'reroll'));
     $('doubleBtn').disabled = busy || Boolean(C.buyProblem(game, team, 'double'));
-    for (const id of ['shopBtn', 'settingsBtn', 'editNamesBtn', 'routeBtn', 'storyBtn', 'helpBtn', 'logBtn', 'exportBtn']) {
+    for (const id of ['crewBtn', 'optionsBtn', 'shopBtn', 'timerBadge']) {
       $(id).disabled = busy;
     }
-    $('treasureBtn').hidden = arrived !== game.count;
+    $('treasureBtn').hidden = arrived === 0;
     $('treasureBtn').disabled = busy;
     document.body.classList.toggle('is-busy', busy);
     if (!busy) drawDie(team.lastRoll?.face);
@@ -483,6 +510,7 @@
       shipElements.get(id).classList.toggle('sailing', position !== targets.get(id));
     }
     drawDie(selected().lastRoll?.face);
+    $('mapMessage').hidden = reduceMotion.matches || document.hidden;
     for (let step = 1; step <= steps && !document.hidden && !reduceMotion.matches; step++) {
       const next = new Map(Array.from(positions, ([id, from]) => [id, from + Math.sign(targets.get(id) - from)]));
       const touched = new Set(Array.from(next).filter(([id, stop]) => stop !== positions.get(id)).map(([, stop]) => stop));
@@ -514,7 +542,7 @@
       await revealDice(previous, teamIds, mode);
       await sailFleet(previous, mode);
     } finally {
-      $('mapMessage').textContent = SELECT_SHIP;
+      $('mapMessage').hidden = true;
       for (const ship of shipElements.values()) ship.classList.remove('sailing');
       busy = false;
       render();
@@ -540,16 +568,28 @@
     if (issue) return;
     const action = { type: 'buy', id: team.id, item: key };
     if (key === 'reroll') action.face = randomDie();
-    if (await playDice(action, [team.id], key)) {
+    $('shopDialog').close();
+    if (await playDice(action, [team.id], key) && !$('treasureDialog').open) {
       const updated = game.teams[team.id - 1];
-      const summary = rollLabel(updated.lastRoll) + (atTreasure(updated) ? ' · ¡En la isla!' : ' · Casilla ' + updated.position);
+      const summary = rollLabel(updated.lastRoll) + ' · Casilla ' + updated.position;
       toast(summary + ' · −' + coinText(C.SHOP[key].cost));
     }
   }
 
   function open(id) {
     const dialog = $(id);
-    if (!dialog.open) dialog.showModal();
+    if (dialog.open) return;
+    if (id !== 'confirmDialog') {
+      document.querySelectorAll('dialog[open]').forEach(current => current.close());
+    }
+    dialog.showModal();
+  }
+
+  function setProjection(active) {
+    document.body.classList.toggle('is-projecting', active);
+    const label = active ? 'Salir de pantalla completa' : 'Activar pantalla completa';
+    $('fullscreenBtn').setAttribute('aria-label', label);
+    $('fullscreenBtn').title = label;
   }
 
   function confirm(title, message, callback) {
@@ -621,7 +661,7 @@
       price.textContent = coinText(item.cost);
       button.append(copy, price);
       button.addEventListener('click', () => {
-        if (commit({ type: 'buy', item: key })) {
+        if (commit({ type: 'buy', item: key }) && $('shopDialog').open) {
           renderShop();
           $('shopBalance').focus();
         }
@@ -636,11 +676,16 @@
 
   function renderTimer() {
     const seconds = Math.ceil(remaining() / 1000);
-    $('timerValue').textContent = String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0');
+    const ready = seconds === 0;
+    const time = String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0');
+    $('timerValue').textContent = time;
     $('timerBtn').textContent = timer.deadline ? 'Pausar' : 'Iniciar';
     $('timerMinutes').disabled = Boolean(timer.deadline);
-    $('timerHint').textContent = seconds === 0 ? 'Ya puedes convocar a las tripulaciones.' : 'El reloj avisa cuándo volver al mapa.';
-    document.querySelector('.timer-panel').classList.toggle('timer-ready', seconds === 0);
+    $('timerHint').textContent = ready ? 'Ya puedes convocar a las tripulaciones.' : 'El reloj avisa cuándo volver al mapa.';
+    document.querySelector('.timer-panel').classList.toggle('timer-ready', ready);
+    $('timerBadge').hidden = !timer.deadline && !ready;
+    $('timerBadge').classList.toggle('timer-ready', ready);
+    $('timerBadgeValue').textContent = ready ? 'Hora de lanzar' : time;
   }
 
   loadSavedGame();
@@ -685,23 +730,31 @@
   });
   $('backBtn').addEventListener('click', () => commit({ type: 'move', amount: -1 }));
   $('forwardBtn').addEventListener('click', () => commit({ type: 'move', amount: 1 }));
+  $('crewBtn').addEventListener('click', () => open('crewDialog'));
+  $('optionsBtn').addEventListener('click', () => open('optionsDialog'));
   $('helpBtn').addEventListener('click', () => open('helpDialog'));
-  $('treasureBtn').addEventListener('click', () => open('treasureDialog'));
+  $('timerOpenBtn').addEventListener('click', () => open('timerDialog'));
+  $('timerBadge').addEventListener('click', () => open('timerDialog'));
+  $('treasureBtn').addEventListener('click', () => showTreasure(active().filter(atTreasure)));
   $('fullscreenBtn').addEventListener('click', async () => {
+    const activate = !document.body.classList.contains('is-projecting');
+    setProjection(activate);
     try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else await document.documentElement.requestFullscreen();
+      if (activate) await document.documentElement.requestFullscreen?.();
+      else if (document.fullscreenElement) await document.exitFullscreen();
     } catch (_) {
-      toast('No se pudo activar la pantalla completa en este navegador.');
+      // La vista de proyección ocupa toda la ventana aunque el navegador bloquee la API.
     }
   });
-  document.addEventListener('fullscreenchange', () => {
-    $('fullscreenBtn').setAttribute('aria-label', document.fullscreenElement ? 'Salir de pantalla completa' : 'Activar pantalla completa');
+  document.addEventListener('fullscreenchange', () => setProjection(Boolean(document.fullscreenElement)));
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !document.fullscreenElement && !document.querySelector('dialog[open]')) {
+      setProjection(false);
+    }
   });
 
   $('settingsBtn').addEventListener('click', () => loadSettings());
   $('editNamesBtn').addEventListener('click', () => loadSettings('name' + game.selected));
-  $('routeBtn').addEventListener('click', () => loadSettings('routeLength'));
   $('teamCount').addEventListener('change', updateNameVisibility);
   $('routeLength').addEventListener('input', updateLengthControls);
   $('lengthDown').addEventListener('click', () => changeLength(-1));

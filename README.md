@@ -12,16 +12,16 @@ Tablero para acompañar la narrativa pirata de la mañana del taller de gamifica
 - Monedas por equipo para pistas, ejemplos, consultas y viento a favor.
 - Reloj opcional de 1 a 60 minutos. Solo avisa: las tiradas las decide el relator.
 - Deshacer, bitácora, pantalla completa, guardado local y respaldo JSON exportable/importable.
-- Llegada sin tirada exacta; todos pueden alcanzar la isla y abrir el tesoro juntos.
+- Saludo del Capitán Brújula para cada llegada. Cuando toda la flota alcanza la isla, el capitán propone un cierre para la mañana.
 
 ## Usar durante el taller
 
-1. Abre **Preparar expedición**, elige seis o siete equipos y escribe sus nombres. Usa **+** o **−** junto al largo de la ruta para ajustar las casillas hasta el tesoro.
-2. Usa **Narrativa** para presentar la partida o cambiar la etapa que acompaña el tablero.
-3. Cuando decidas hacer una pausa, lanza para un equipo o usa **Ronda completa**.
-4. El botón **+** junto al saldo entrega una moneda. Después de una tirada, **Volver a tirar** sustituye el resultado anterior por el nuevo, incluso si sale un número menor. **Duplicar tirada** multiplica por dos el valor que salió.
-5. **Canjear ayudas** registra los otros apoyos. Con **−1** y **+1** puedes ajustar la posición del barco seleccionado.
-6. Descarga un respaldo antes de cambiar de computador o cerrar la jornada. El saldo se conserva para seguir usando las fichas durante la tarde.
+1. En **Opciones → Preparar expedición**, elige seis o siete equipos y escribe sus nombres. Usa **+** o **−** junto al largo de la ruta para ajustar las casillas hasta el tesoro.
+2. Abre **Opciones → Narrativa** para presentar la partida o cambiar la etapa que acompaña el tablero. Usa el botón de pantalla completa si vas a proyectar el mapa.
+3. Elige un barco en el mapa o en **Tripulaciones**. Lanza para ese equipo o usa **Ronda completa**.
+4. En **Tripulaciones**, el botón **+** junto al saldo entrega una moneda. Pulsa el saldo en la barra inferior para abrir **Canjes y ayudas**. **Volver a tirar** sustituye el resultado anterior por el nuevo, incluso si sale un número menor. **Duplicar tirada** multiplica por dos el valor que salió.
+5. En **Opciones** puedes ajustar la posición del barco seleccionado con **−1** y **+1**, iniciar el reloj o consultar la bitácora.
+6. Antes de cambiar de computador o cerrar la jornada, usa **Opciones → Descargar respaldo**. El saldo se conserva para seguir usando las fichas durante la tarde.
 
 El tablero se maneja desde el computador del relator. El guardado pertenece a ese navegador; no sincroniza datos entre dispositivos ni entre participantes. Si no puedes usar almacenamiento local, el tablero lo indica y puedes descargar un respaldo. Evita operar una misma partida desde dos pestañas a la vez.
 
