@@ -9,18 +9,68 @@
   const MAX_NAME = 28;
   const NAMES = ['El Cormorán', 'La Brújula', 'La Sirena', 'El Horizonte', 'La Marea', 'El Albatros', 'La Estrella'];
   const COLORS = ['#f9c66b', '#fb8b7c', '#7bd9d3', '#c9b1ff', '#aed58a', '#8fbff5', '#f1abd1'];
-  const SHOP = Object.freeze({
-    reroll: { name: 'Volver a tirar', cost: 2, roll: true },
-    double: { name: 'Duplicar tirada', cost: 3, roll: true },
-    hint: { name: 'Pista extra', cost: 1 },
-    example: { name: 'Ejemplo de apoyo', cost: 2 },
-    consult: { name: 'Consulta breve', cost: 3 },
-    wind: { name: 'Viento a favor', cost: 3, steps: 2 }
-  });
-
   const integer = (value, min, max) => Number.isInteger(value) && value >= min && value <= max;
+  const DEFAULT_TABLE = [
+    { id: 'reroll', nombre: 'Volver a tirar', precio: 2, efecto: 'volver-a-tirar',
+      descripcion: 'Repite la última tirada. Vale el nuevo resultado, aunque sea menor.' },
+    { id: 'double', nombre: 'Duplicar tirada', precio: 3, efecto: 'duplicar',
+      descripcion: 'El valor que salió en el dado se multiplica por dos.' },
+    { id: 'wind', nombre: 'Viento a favor', precio: 3, efecto: 'avanzar', casillas: 2,
+      descripcion: 'Avanza dos casillas hacia la isla.' },
+    { id: 'hint', nombre: 'Pista extra', precio: 1, descripcion: 'Una orientación adicional para la misión.' },
+    { id: 'example', nombre: 'Ejemplo de apoyo', precio: 2, descripcion: 'Un ejemplo que puedan adaptar a su propuesta.' },
+    { id: 'consult', nombre: 'Consulta breve', precio: 3, descripcion: 'Dos minutos para revisar una idea con el relator.' }
+  ];
+  const EFFECTS = { 'volver-a-tirar': 'reroll', duplicar: 'double', avanzar: 'steps' };
+
+  // Convierte la tabla de canjes (dist/canjes.js) en el catálogo que usa el juego.
+  function buildShop(table) {
+    if (!Array.isArray(table) || !table.length || table.length > 30) {
+      throw new Error('La tabla de canjes debe tener entre 1 y 30 canjes.');
+    }
+    const shop = {};
+    table.forEach((row, i) => {
+      const where = 'Canje ' + (i + 1) + ': ';
+      if (!row || typeof row.id !== 'string' || !/^[a-z0-9-]{1,30}$/i.test(row.id) || Object.hasOwn(shop, row.id)) {
+        throw new Error(where + 'el id debe ser único y usar solo letras, números o guiones.');
+      }
+      if (typeof row.nombre !== 'string' || !row.nombre.trim() || row.nombre.length > 40) {
+        throw new Error(where + 'escribe un nombre de hasta 40 caracteres.');
+      }
+      if (!integer(row.precio, 0, 99)) throw new Error(where + 'el precio debe ser un entero entre 0 y 99.');
+      if (row.descripcion !== undefined && (typeof row.descripcion !== 'string' || row.descripcion.length > 160)) {
+        throw new Error(where + 'la descripción debe tener hasta 160 caracteres.');
+      }
+      const effect = row.efecto === undefined || row.efecto === '' ? '' : EFFECTS[row.efecto];
+      if (effect === undefined) throw new Error(where + 'el efecto "' + row.efecto + '" no existe.');
+      if (effect === 'steps' && !integer(row.casillas, 1, 10)) {
+        throw new Error(where + 'indica entre 1 y 10 casillas para avanzar.');
+      }
+      shop[row.id] = Object.freeze({
+        name: row.nombre.trim(),
+        cost: row.precio,
+        description: (row.descripcion || '').trim(),
+        effect,
+        roll: effect === 'reroll' || effect === 'double',
+        steps: effect === 'steps' ? row.casillas : 0
+      });
+    });
+    return Object.freeze(shop);
+  }
+
+  let SHOP = buildShop(DEFAULT_TABLE);
+  let SHOP_ERROR = '';
+  if (root.TABLA_CANJES !== undefined) {
+    try {
+      SHOP = buildShop(root.TABLA_CANJES);
+    } catch (error) {
+      SHOP_ERROR = 'La tabla de canjes tiene un error (' + error.message + ') Se usa la tabla de ejemplo.';
+    }
+  }
+
   const clone = value => JSON.parse(JSON.stringify(value));
   const teamName = team => team.name || team.shipName;
+  const spent = cost => cost ? '−' + cost + (cost === 1 ? ' moneda.' : ' monedas.') : 'sin costo.';
   const rollValue = roll => roll.face * (roll.mode === 'double' ? 2 : 1);
 
   function initial() {
@@ -92,7 +142,7 @@
 
   function rollProblem(game, team) {
     if (team.position === game.routeLength) return 'La tripulación ya llegó al tesoro.';
-    if (!team.lastRoll || team.lastRoll.from === null) return 'Lanza el dado para activar los canjes de tirada.';
+    if (!team.lastRoll || team.lastRoll.from === null) return 'Primero lancen el dado.';
     if (team.lastRoll.mode !== 'roll') return 'Ya usaste un canje en esta tirada.';
     return '';
   }
@@ -105,7 +155,10 @@
       if (problem) return problem;
     }
     if (item.steps && team.position === game.routeLength) return 'Esta tripulación ya llegó al tesoro.';
-    if (team.coins < item.cost) return 'Esta tripulación no tiene suficientes monedas.';
+    if (team.coins < item.cost) {
+      const missing = item.cost - team.coins;
+      return (missing === 1 ? 'Falta 1 moneda.' : 'Faltan ' + missing + ' monedas.');
+    }
     return '';
   }
 
@@ -145,22 +198,28 @@
       }
       team.coins += action.amount;
       record(teamName(team) + ': ' + (action.amount >= 0 ? '+' : '') + action.amount + (Math.abs(action.amount) === 1 ? ' moneda.' : ' monedas.'));
+    } else if (action.type === 'coinAll') {
+      if (!integer(action.amount, 1, 99) || active.some(ship => ship.coins + action.amount > 999)) {
+        throw new Error('El saldo debe quedar entre 0 y 999 monedas.');
+      }
+      active.forEach(ship => { ship.coins += action.amount; });
+      record('Toda la flota: +' + action.amount + (action.amount === 1 ? ' moneda.' : ' monedas.'));
     } else if (action.type === 'buy') {
       const problem = buyProblem(game, team, action.item);
       if (problem) throw new Error(problem);
       const item = SHOP[action.item];
       if (item.roll) {
         const previousFace = team.lastRoll.face;
-        const face = action.item === 'reroll' ? action.face : previousFace;
+        const face = item.effect === 'reroll' ? action.face : previousFace;
         if (!integer(face, 1, 6)) throw new Error('La tirada debe ser un número entre 1 y 6.');
-        team.lastRoll = { ...team.lastRoll, face, mode: action.item };
+        team.lastRoll = { ...team.lastRoll, face, mode: item.effect };
         const value = rollValue(team.lastRoll);
         team.position = Math.min(game.routeLength, team.lastRoll.from + value);
         record(teamName(team) + ': ' + item.name + ' (' + previousFace + ' a ' + value + ') · casilla ' +
-          team.position + ' · −' + item.cost + ' monedas.');
+          team.position + ' · ' + spent(item.cost));
       } else {
         if (item.steps) setPosition(team, Math.min(game.routeLength, team.position + item.steps));
-        record(teamName(team) + ': ' + item.name + ' · −' + item.cost + ' monedas.');
+        record(teamName(team) + ': ' + item.name + (item.steps ? ' · casilla ' + team.position : '') + ' · ' + spent(item.cost));
       }
       team.coins -= item.cost;
     } else if (action.type === 'move') {
@@ -216,7 +275,7 @@
   }
 
   const api = {
-    VERSION, STEPS, MIN_STEPS, MAX_STEPS, MAX_NAME, NAMES, COLORS, SHOP,
+    VERSION, STEPS, MIN_STEPS, MAX_STEPS, MAX_NAME, NAMES, COLORS, SHOP, SHOP_ERROR, DEFAULT_TABLE, buildShop,
     initial, validate, apply, backup, clone, teamName, rollValue, rollProblem, buyProblem
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

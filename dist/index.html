@@ -7,10 +7,11 @@
   <meta name="description" content="Tablero pirata del taller de gamificación. Navega por el mapa con tu tripulación, lanza el dado y usa tus monedas para llegar al tesoro.">
   <title>La ruta del tesoro · Taller de gamificación</title>
   <link rel="icon" href="./assets/cofre-pirata.webp" type="image/webp">
-  <link rel="stylesheet" href="styles.css?v=5">
-  <script src="core.js?v=6" defer></script>
+  <link rel="stylesheet" href="styles.css?v=6">
+  <script src="canjes.js?v=1" defer></script>
+  <script src="core.js?v=7" defer></script>
   <script src="cinematic.js?v=5" defer></script>
-  <script src="app.js?v=6" defer></script>
+  <script src="app.js?v=7" defer></script>
 </head>
 <body>
   <svg class="icon-library" aria-hidden="true">
@@ -27,6 +28,13 @@
       <symbol id="i-pencil" viewBox="0 0 24 24"><path d="m4 16 12-12 4 4L8 20H4zm10-10 4 4"/></symbol>
       <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></symbol>
       <symbol id="i-restart" viewBox="0 0 24 24"><path d="M3 10a9 9 0 1 1 2 8M3 3v7h7"/></symbol>
+      <symbol id="i-dice" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8" cy="8" r="1.2"/><circle cx="16" cy="16" r="1.2"/><circle cx="12" cy="12" r="1.2"/></symbol>
+      <symbol id="i-double" viewBox="0 0 24 24"><rect x="2" y="6" width="12" height="12" rx="3"/><path d="M17 9l5 6m0-6-5 6"/></symbol>
+      <symbol id="i-wind" viewBox="0 0 24 24"><path d="M3 8h11a3 3 0 1 0-3-3M3 12h16a3 3 0 1 1-3 3M3 16h7"/></symbol>
+      <symbol id="i-scroll" viewBox="0 0 24 24"><path d="M6 3h11a3 3 0 0 1 0 6h-1v9a3 3 0 0 1-3 3H6a3 3 0 0 1 0-6h1V6a3 3 0 0 1 3-3M7 15h9M10 7h4m-4 4h4"/></symbol>
+      <symbol id="i-crown" viewBox="0 0 24 24"><path d="M3 18 2 7l6 4 4-7 4 7 6-4-1 11zM4 21h16"/></symbol>
+      <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zm12 0a4 4 0 0 1 0 6m3-9a8 8 0 0 1 0 12"/></symbol>
+      <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zm12 1 5 5m0-5-5 5"/></symbol>
     </defs>
   </svg>
   <div class="app">
@@ -45,6 +53,9 @@
         </button>
         <button class="quiet restart-button" id="resetBtn" title="Reiniciar aventura" aria-label="Reiniciar aventura" aria-haspopup="dialog">
           <svg aria-hidden="true"><use href="#i-restart"/></svg><span>Reiniciar</span>
+        </button>
+        <button class="icon-button" id="soundBtn" aria-pressed="true" aria-label="Sonido activado" title="Sonido activado">
+          <svg aria-hidden="true"><use href="#i-sound"/></svg>
         </button>
         <button class="icon-button" id="fullscreenBtn" aria-label="Activar pantalla completa" title="Pantalla completa">
           <svg aria-hidden="true"><use href="#i-expand"/></svg>
@@ -114,6 +125,8 @@
         </div>
     </main>
 
+    <nav id="fleetBar" class="fleet-bar" aria-label="Marcador de la flota"></nav>
+
     <footer class="helm parchment" aria-label="Controles de navegación">
       <div class="die" id="die" aria-label="Dado sin lanzar"><span>?</span></div>
       <div class="helm-copy">
@@ -124,8 +137,9 @@
       <div class="roll-actions">
         <button id="rollBtn" class="primary">Lanzar dado</button>
         <button id="roundBtn" class="secondary">Ronda completa</button>
-        <button id="shopBtn" class="quiet coin-button" aria-label="Canjes y ayudas" aria-haspopup="dialog" title="Canjes y ayudas">
-          <svg aria-hidden="true"><use href="#i-coin"/></svg><span id="selectedCoins">3 monedas</span>
+        <button id="shopBtn" class="coin-button" aria-label="Tienda de canjes" aria-haspopup="dialog" title="Gastar monedas en la tienda">
+          <span class="coin-medal" aria-hidden="true"><svg><use href="#i-coin"/></svg></span>
+          <span class="coin-copy"><span id="selectedCoins">3</span><small>Canjear</small></span>
         </button>
       </div>
     </footer>
@@ -142,6 +156,13 @@
       <button class="secondary" id="undoBtn"><svg aria-hidden="true"><use href="#i-undo"/></svg>Deshacer</button>
       <button class="secondary preview-finale" id="cinemaPreviewBtn" aria-haspopup="dialog"><svg aria-hidden="true"><use href="#i-flag"/></svg>Vista previa del final</button>
     </div>
+    <p id="shopWarning" class="warning" role="alert" hidden></p>
+    <div class="position-adjust" role="group" aria-label="Entregar monedas a la tripulación seleccionada">
+      <div><strong>Entregar monedas</strong><p id="coinTeam" class="muted"></p></div>
+      <button id="coinMinusBtn" class="stepper-button" title="Quitar una moneda" aria-label="Quitar una moneda">−1</button>
+      <button id="coinPlusBtn" class="stepper-button" title="Dar una moneda" aria-label="Dar una moneda">+1</button>
+      <button id="coinAllBtn" class="stepper-button" title="Dar una moneda a cada tripulación" aria-label="Dar una moneda a cada tripulación">+1 a todas</button>
+    </div>
     <div class="position-adjust" role="group" aria-label="Ajustar casillas de la tripulación seleccionada">
       <div><strong>Ajustar posición</strong><p id="adjustTeam" class="muted"></p></div>
       <button id="backBtn" class="stepper-button" title="Retroceder una casilla" aria-label="Retroceder una casilla">−1</button>
@@ -156,7 +177,7 @@
   <dialog id="crewDialog" aria-labelledby="crewTitle">
     <div class="dialog-heading"><h2 id="crewTitle">Tripulaciones</h2><button class="close-button" data-close aria-label="Cerrar">×</button></div>
     <div class="crew-tools">
-      <p class="muted">Elige un barco o entrega monedas con el botón +.</p>
+      <p class="muted">Elige el barco que va a jugar.</p>
       <button id="editNamesBtn" class="text-button" aria-haspopup="dialog"><svg aria-hidden="true"><use href="#i-pencil"/></svg>Editar nombres</button>
     </div>
     <div id="crewList" class="crew-list"></div>
@@ -241,23 +262,20 @@
     <button class="primary" id="useSceneBtn">Mostrar esta etapa en el tablero</button>
   </dialog>
 
-  <dialog id="shopDialog" aria-labelledby="shopTitle">
-    <div class="dialog-heading"><h2 id="shopTitle">Canjes y ayudas</h2><button class="close-button" data-close aria-label="Cerrar">×</button></div>
-    <p id="shopBalance" class="muted" tabindex="-1" aria-live="polite"></p>
-    <div class="dice-market">
-      <h3>Canjes de la tirada</h3>
-      <p id="upgradeHint" class="muted">Los canjes se activan después de lanzar.</p>
-      <div class="dice-cashouts">
-        <button id="rerollBtn" class="cashout" aria-describedby="upgradeHint" title="La nueva tirada sustituye a la anterior">
-          <span>Volver a tirar</span><strong>2 monedas</strong>
-        </button>
-        <button id="doubleBtn" class="cashout" aria-describedby="upgradeHint" title="El valor de la última tirada se multiplica por dos">
-          <span>Duplicar tirada</span><strong>3 monedas</strong>
-        </button>
+  <dialog id="shopDialog" class="shop-dialog" aria-labelledby="shopTitle">
+    <div class="dialog-heading">
+      <div><p class="eyebrow">Tienda del puerto</p><h2 id="shopTitle">Canjes</h2></div>
+      <button class="close-button" data-close aria-label="Cerrar">×</button>
+    </div>
+    <div class="purse">
+      <div class="shop-crews" id="shopCrews" role="group" aria-label="Tripulación que gasta"></div>
+      <div class="purse-row">
+        <div class="purse-copy"><strong id="shopTeam"></strong><small>¿En qué gastarán sus monedas?</small></div>
+        <div class="purse-coins" id="shopPurse"><svg aria-hidden="true"><use href="#i-coin"/></svg><span id="shopBalance" tabindex="-1" aria-live="polite"></span></div>
       </div>
     </div>
-    <h3>Ayudas para la travesía</h3>
-    <div id="shopItems" class="shop-items"></div>
+    <div id="shopItems" class="shop-grid"></div>
+    <p class="shop-footnote muted">Los canjes del dado se activan después de lanzar: uno por tirada. Si alguien se equivoca, usa <strong>Deshacer</strong> en Opciones.</p>
   </dialog>
 
   <dialog id="logDialog" aria-labelledby="logTitle">
@@ -270,7 +288,7 @@
     <ol class="help-list">
       <li><strong>Prepara la expedición.</strong> En Opciones, elige entre dos y siete barcos, edita sus nombres y ajusta el largo de la ruta.</li>
       <li><strong>Navega.</strong> Selecciona un barco y lanza el dado. En una ronda completa cada barco que sigue en viaje obtiene su propia tirada.</li>
-      <li><strong>Usa tus monedas.</strong> Con 2 monedas puedes volver a tirar y quedarte con el nuevo resultado, aunque sea menor. Con 3 puedes duplicar el valor que sacaste. Puedes elegir un canje por tirada.</li>
+      <li><strong>Gana y gasta monedas.</strong> El relator entrega monedas en Opciones → Entregar monedas. Las tripulaciones las gastan en la tienda (botón de la moneda) según la tabla de canjes. Los canjes del dado se usan uno por tirada.</li>
       <li><strong>Lleva el ritmo.</strong> En Opciones encontrarás el reloj y los botones −1 y +1 para ajustar la posición del barco seleccionado.</li>
       <li><strong>Descubre el tesoro.</strong> Cada llegada abre una cinemática con el Capitán Brújula. Puedes pausar, avanzar o volver al mapa. Los barcos llegan aunque saquen más que las casillas que faltan.</li>
       <li><strong>Vuelve a zarpar.</strong> El botón Reiniciar de la barra superior prepara una nueva aventura después de tu confirmación.</li>

@@ -54,7 +54,8 @@ h3 { font-size: 1.35rem; }
 .app {
   position: relative;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
   height: 100vh;
   height: 100dvh;
@@ -104,7 +105,7 @@ button svg, .brand-icon svg, .crew-coins svg {
   text-align: center;
   white-space: nowrap;
 }
-.is-projecting .app { grid-template-rows: minmax(0, 1fr) auto; gap: 0; padding: 0; }
+.is-projecting .app { grid-template-rows: minmax(0, 1fr) auto auto; gap: 0; padding: 0; }
 .is-projecting .topbar {
   position: absolute;
   z-index: 3;
@@ -121,7 +122,7 @@ button svg, .brand-icon svg, .crew-coins svg {
 }
 .is-projecting .board-status { right: auto; }
 .toolbar { flex: none; gap: 5px; }
-.quiet, .icon-button, .text-button, .stepper-button, .coin-add {
+.quiet, .icon-button, .text-button, .stepper-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -133,13 +134,12 @@ button svg, .brand-icon svg, .crew-coins svg {
   color: var(--ink);
   background: transparent;
 }
-.quiet, .icon-button, .stepper-button, .coin-add {
+.quiet, .icon-button, .stepper-button {
   border-color: #956e3e96;
   background: #f5e4bc7d;
 }
 .quiet:hover:not(:disabled), .icon-button:hover:not(:disabled),
-.text-button:hover:not(:disabled), .stepper-button:hover:not(:disabled),
-.coin-add:hover:not(:disabled) { border-color: #9b6e34; background: #d9b77a87; }
+.text-button:hover:not(:disabled), .stepper-button:hover:not(:disabled) { border-color: #9b6e34; background: #d9b77a87; }
 .icon-button { width: 42px; }
 .text-button { color: #713919; }
 
@@ -278,7 +278,6 @@ button svg, .brand-icon svg, .crew-coins svg {
 .secondary, .cashout { color: var(--ink); background: #f9eccb; box-shadow: inset 0 0 0 2px #f2d9a8; }
 .secondary:hover:not(:disabled), .cashout:hover:not(:disabled) { background: #ffefc5; border-color: #6b411d; }
 .danger-button { color: #6e2926; border-color: #a85b50; background: #f2d2b1; }
-.coin-button { color: #5d3c13; font-weight: bold; white-space: nowrap; }
 
 .roll-overlay {
   position: fixed;
@@ -443,7 +442,6 @@ dialog::backdrop { background: #061d28ba; backdrop-filter: blur(4px); }
 .last-roll { color: #73482a; }
 .crew-coins { gap: 4px; padding-right: 7px; color: #623e12; font-variant-numeric: tabular-nums; }
 .crew-coins svg { width: 16px; height: 16px; }
-.coin-add { width: 37px; min-height: 37px; margin-left: 3px; font-size: 1.3rem; }
 .crew-progress { position: absolute; bottom: 1px; left: 6px; right: 6px; height: 2px; overflow: hidden; background: #99703a3a; }
 .crew-progress span { display: block; width: 0; height: 100%; background: #8a5429; transition: width .24s; }
 
@@ -797,8 +795,265 @@ dialog::backdrop { background: #061d28ba; backdrop-filter: blur(4px); }
   .brand-icon { display: none; }
   .roll-actions { gap: 4px; }
   .roll-actions button { padding-inline: 5px; font-size: .8125rem; }
-  .coin-button svg { width: 16px; height: 16px; }
   #selectedPosition { font-size: .8125rem; }
+}
+/* ---------- Marcador de la flota ---------- */
+.fleet-bar {
+  display: grid;
+  grid-template-columns: repeat(var(--fleet-count, 7), minmax(150px, 1fr));
+  gap: 6px;
+  padding-top: 9px;
+  margin-top: -6px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.fleet-chip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 9px 6px 7px;
+  border: 1px solid #a98554;
+  border-radius: 6px;
+  color: var(--ink);
+  background: var(--parchment);
+  box-shadow: inset 0 0 0 2px #f7e4b4, 0 2px 6px #04192155;
+  text-align: left;
+  transition: transform .18s, box-shadow .18s;
+}
+.fleet-chip:hover:not(:disabled) { transform: translateY(-2px); }
+.fleet-chip.selected {
+  border-color: #6d2a1f;
+  box-shadow: inset 0 0 0 2px var(--ship-color), 0 0 0 2px #f8d182, 0 4px 14px #f8d18255;
+  transform: translateY(-3px);
+}
+.fleet-chip:disabled { opacity: 1; }
+.fleet-copy { flex: 1; min-width: 0; }
+.fleet-name { display: block; overflow: hidden; font-weight: bold; font-size: .875rem; text-overflow: ellipsis; white-space: nowrap; }
+.fleet-track { display: block; height: 6px; margin-top: 4px; overflow: hidden; border-radius: 3px; background: #7c552b33; box-shadow: inset 0 1px 2px #5a381a55; }
+.fleet-track span { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--ship-color), #c98a3a); transition: width .24s; }
+.fleet-stats { display: grid; justify-items: end; gap: 1px; font-variant-numeric: tabular-nums; }
+.fleet-place { color: var(--muted); font-size: .72rem; font-weight: bold; letter-spacing: .04em; }
+.fleet-coins { display: inline-flex; align-items: center; gap: 3px; color: #6b4310; font-weight: bold; }
+.fleet-coins svg { width: 15px; height: 15px; fill: #f3c45a; stroke: #7a4d12; stroke-width: 1.6; }
+.fleet-crown {
+  position: absolute;
+  top: -9px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  fill: #f6c95b;
+  stroke: #6e4211;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  opacity: 0;
+  transform: rotate(-18deg) scale(.6);
+  transition: opacity .2s, transform .25s;
+}
+.fleet-chip.leader .fleet-crown { opacity: 1; transform: rotate(-18deg) scale(1); }
+.fleet-chip.arrived { background: linear-gradient(135deg, #fff1bf, #f2cd7a); }
+.fleet-chip.arrived .fleet-place { color: #7a3d12; }
+.is-projecting .fleet-bar { padding: 6px 6px 0; background: #071f27; }
+
+/* ---------- Botón de monedas ---------- */
+.coin-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 41px;
+  padding: 4px 13px 4px 5px;
+  border: 1px solid #7a4d12;
+  border-radius: 999px;
+  color: #4d300c;
+  background: linear-gradient(#ffe39a, #e9b24c);
+  box-shadow: inset 0 1px #fff6d3, inset 0 -2px #b9802e, 0 2px 4px #4d300c44;
+  font-weight: bold;
+  white-space: nowrap;
+}
+.coin-button:hover:not(:disabled) { background: linear-gradient(#fff0b8, #f1c05f); }
+.coin-medal {
+  display: grid;
+  place-items: center;
+  width: 33px;
+  height: 33px;
+  border: 1px solid #7a4d12;
+  border-radius: 50%;
+  color: #6d420c;
+  background: radial-gradient(circle at 35% 30%, #fff3c4, #f0b94a 70%);
+}
+.coin-medal svg { width: 21px; height: 21px; }
+.coin-copy { display: grid; line-height: 1; text-align: left; }
+#selectedCoins { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+.coin-copy small { margin-top: 2px; font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; }
+.coin-button.bump { animation: coin-bump .5s ease-out; }
+@keyframes coin-bump { 30% { transform: scale(1.12); } 60% { transform: scale(.96); } }
+
+/* ---------- Tienda de canjes ---------- */
+.shop-dialog { width: min(760px, calc(100% - 24px)); }
+.purse {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #a98554;
+  border-radius: 6px;
+  background: #fff4d06b;
+}
+.shop-crews { display: flex; flex-wrap: wrap; gap: 6px; }
+.shop-crew { cursor: pointer; opacity: .55; transition: opacity .15s, transform .15s; }
+.shop-crew[aria-pressed="true"] { opacity: 1; outline: 3px solid #6d2a1f; outline-offset: 2px; transform: scale(1.08); }
+.shop-crew:hover { opacity: 1; }
+.purse-row { display: flex; align-items: center; gap: 12px; }
+.purse-copy { flex: 1; min-width: 0; }
+.purse-copy strong { display: block; overflow: hidden; font-family: var(--title-font); font-size: 1.5rem; font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
+.purse-copy small { color: var(--muted); }
+.purse-coins {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px 6px 8px;
+  border: 1px solid #7a4d12;
+  border-radius: 999px;
+  color: #4d300c;
+  background: linear-gradient(#ffe39a, #e9b24c);
+  box-shadow: inset 0 1px #fff6d3, inset 0 -2px #b9802e;
+  font-size: 1.9rem;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.purse-coins svg { width: 30px; height: 30px; fill: #fff0b8; stroke: #6d420c; stroke-width: 1.6; }
+.purse-coins.spent { animation: coin-bump .5s ease-out; }
+.coin-float {
+  position: absolute;
+  right: 6px;
+  top: -6px;
+  color: #8c2a1c;
+  font-size: 1.3rem;
+  pointer-events: none;
+  animation: coin-float 1.1s ease-out forwards;
+}
+@keyframes coin-float { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-34px); } }
+.flying-coin {
+  position: fixed;
+  z-index: 60;
+  width: 20px;
+  height: 20px;
+  border: 1px solid #7a4d12;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff3c4, #f0b94a 70%);
+  pointer-events: none;
+  animation: coin-fly .75s cubic-bezier(.5, -0.3, .7, 1) both;
+}
+@keyframes coin-fly {
+  from { opacity: 1; transform: translate(0, 0) scale(1); }
+  to { opacity: .2; transform: translate(var(--dx), var(--dy)) scale(.5); }
+}
+.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 8px; }
+.shop-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: 1fr auto;
+  gap: 4px 10px;
+  min-height: 112px;
+  padding: 12px;
+  overflow: hidden;
+  border: 1px solid #a98657;
+  border-radius: 6px;
+  color: var(--ink);
+  background: #fff3cfcc;
+  box-shadow: 0 2px 0 #a9865766;
+  text-align: left;
+  transition: transform .15s, box-shadow .15s, background .15s;
+}
+.shop-card:hover:not(.locked) { transform: translateY(-2px); background: #fff7dc; box-shadow: 0 5px 12px #6d401f33; border-color: #6d401f; }
+.shop-card:active:not(.locked) { transform: translateY(1px); }
+.shop-icon {
+  display: grid;
+  place-items: center;
+  grid-row: 1 / 3;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #8a5a2c;
+  border-radius: 10px;
+  color: #fff3d1;
+  background: linear-gradient(#894032, var(--wax));
+}
+.shop-card[data-effect="steps"] .shop-icon { background: linear-gradient(#2c6f73, #174a52); }
+.shop-card[data-effect="none"] .shop-icon { background: linear-gradient(#8a6a3a, #5f4521); }
+.shop-icon svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.shop-copy strong { display: block; font-size: 1rem; }
+.shop-copy small { display: block; margin-top: 3px; color: var(--muted); font-size: .84rem; line-height: 1.35; }
+.shop-price {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px 3px 4px;
+  border: 1px solid #7a4d12;
+  border-radius: 999px;
+  color: #4d300c;
+  background: linear-gradient(#ffe39a, #e9b24c);
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+}
+.shop-price svg { width: 18px; height: 18px; fill: #fff0b8; stroke: #6d420c; stroke-width: 1.6; }
+.shop-lock { display: none; }
+.shop-card.locked { cursor: not-allowed; background: #eadcbcaa; box-shadow: none; }
+.shop-card.locked .shop-icon, .shop-card.locked .shop-price { filter: grayscale(.85); opacity: .6; }
+.shop-card.locked .shop-copy { opacity: .7; }
+.shop-card.locked .shop-lock {
+  display: block;
+  grid-column: 2;
+  color: #7a2f22;
+  font-size: .78rem;
+  font-weight: bold;
+}
+.shop-card.locked .shop-price { display: none; }
+.shop-card.bought::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  padding: 4px 12px;
+  border: 3px double #8c2a1c;
+  border-radius: 4px;
+  color: #8c2a1c;
+  background: #fff3cfdd;
+  font-family: var(--title-font);
+  font-size: 1.4rem;
+  content: "¡Canjeado!";
+  pointer-events: none;
+  animation: stamp 1.3s ease-out forwards;
+}
+@keyframes stamp {
+  0% { opacity: 0; transform: translate(-50%, -50%) rotate(-12deg) scale(1.8); }
+  18% { opacity: 1; transform: translate(-50%, -50%) rotate(-12deg) scale(1); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) rotate(-12deg) scale(1); }
+}
+.shop-footnote { margin-top: 12px; font-size: .82rem; }
+.warning { margin-bottom: 12px; padding: 9px 12px; border: 1px solid #a85b50; border-radius: 4px; color: #6e2926; background: #f2d2b1; font-size: .875rem; }
+.position-adjust #coinAllBtn { white-space: nowrap; }
+
+@media (max-width: 700px) {
+  .fleet-bar { grid-template-columns: repeat(var(--fleet-count, 7), minmax(132px, 1fr)); }
+  .coin-button { padding-right: 9px; }
+  .coin-copy small { display: none; }
+  .purse-coins { font-size: 1.5rem; }
+  .shop-grid { grid-template-columns: 1fr; }
+  .shop-card { min-height: 0; }
+}
+@media (max-width: 700px) and (orientation: portrait) {
+  .app { grid-template-rows: auto auto minmax(0, 1fr) auto; }
+  .dashboard { aspect-ratio: 16 / 10.5; }
+  .fleet-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; overflow: auto; }
+}
+@media (max-width: 500px) {
+  .position-adjust { flex-wrap: wrap; }
+  .position-adjust > div { flex-basis: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }

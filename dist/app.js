@@ -24,12 +24,7 @@
     }
   ];
   const CHAPTERS = ['La tripulación se reúne', 'Las ideas toman el timón', 'El tesoro se comparte'];
-  const SHOP_TEXT = {
-    hint: 'Una orientación adicional para tu misión.',
-    example: 'Un ejemplo que puedas adaptar a tu propuesta.',
-    consult: 'Dos minutos para revisar una idea con el relator.',
-    wind: 'Avanza dos casillas hacia la isla.'
-  };
+  const SHOP_ICONS = { reroll: 'i-dice', double: 'i-double', steps: 'i-wind', '': 'i-scroll' };
   const PIPS = {
     1: [[27, 27]],
     2: [[14, 14], [40, 40]],
@@ -61,6 +56,48 @@
   let drawnLength = 0;
   const shipElements = new Map();
   const cardElements = new Map();
+  const fleetElements = new Map();
+  const SOUND_KEY = 'taller-ruta-tesoro-sonido';
+  let soundOn = true;
+  try { soundOn = localStorage.getItem(SOUND_KEY) !== 'no'; } catch (_) { /* sin almacenamiento */ }
+
+  // Efectos de sonido sintetizados: no requieren archivos y funcionan sin conexión.
+  const sfx = (() => {
+    let context;
+    function ctx() {
+      if (!soundOn) return null;
+      const Audio = window.AudioContext || window.webkitAudioContext;
+      if (!Audio) return null;
+      context ??= new Audio();
+      if (context.state === 'suspended') context.resume();
+      return context;
+    }
+    function tone(freq, start, length, type = 'sine', volume = .16, slide = 0) {
+      const audio = ctx();
+      if (!audio) return;
+      const at = audio.currentTime + start;
+      const osc = audio.createOscillator();
+      const gain = audio.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, at);
+      if (slide) osc.frequency.exponentialRampToValueAtTime(freq * slide, at + length);
+      gain.gain.setValueAtTime(0.0001, at);
+      gain.gain.exponentialRampToValueAtTime(volume, at + .012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + length);
+      osc.connect(gain).connect(audio.destination);
+      osc.start(at);
+      osc.stop(at + length + .02);
+    }
+    return {
+      tick() { tone(220 + Math.random() * 180, 0, .05, 'square', .05); },
+      land() { tone(330, 0, .12, 'triangle', .14); tone(495, .07, .18, 'triangle', .12); },
+      step() { tone(180, 0, .09, 'sine', .07, 1.4); },
+      coin() { tone(988, 0, .09, 'square', .07); tone(1319, .08, .28, 'square', .07); },
+      earn() { tone(660, 0, .1, 'triangle', .12); tone(880, .08, .1, 'triangle', .12); tone(1175, .16, .22, 'triangle', .12); },
+      denied() { tone(180, 0, .18, 'sawtooth', .06, .7); },
+      fanfare() { [523, 659, 784, 1047].forEach((f, i) => tone(f, i * .12, i === 3 ? .5 : .16, 'triangle', .13)); }
+    };
+  })();
 
   function loadSavedGame() {
     try {
@@ -132,6 +169,7 @@
 
   function showTreasure(teams) {
     if (!teams.length) return;
+    sfx.fanfare();
     window.TreasureCinema.play({
       names: listNames.format(teams.map(C.teamName)),
       wholeFleet: active().every(atTreasure)
@@ -215,18 +253,71 @@
       '<span class="crew-name"></span><span class="crew-ship-name" hidden></span>' +
       '<span class="crew-progress-label"><span class="position"></span><span class="last-roll"></span></span>' +
       '</span></button><div class="crew-coins"><svg aria-hidden="true"><use href="#i-coin"/></svg>' +
-      '<span class="balance"></span><button class="coin-add">+</button></div>' +
+      '<span class="balance"></span></div>' +
       '<div class="crew-progress" aria-hidden="true"><span></span></div>';
     card.querySelector('.crew-number').textContent = id;
     card.querySelector('.crew-select').addEventListener('click', () => {
       selectTeam(id);
       $('crewDialog').close();
     });
-    card.querySelector('.coin-add').addEventListener('click', () => {
-      if (commit({ type: 'coin', id, amount: 1 })) toast(C.teamName(game.teams[id - 1]) + ': +1 moneda.');
-    });
     $('crewList').appendChild(card);
     cardElements.set(id, card);
+  }
+
+  function addFleetChip(id, color) {
+    const chip = document.createElement('button');
+    chip.className = 'fleet-chip';
+    chip.type = 'button';
+    chip.style.setProperty('--ship-color', color);
+    chip.innerHTML =
+      '<span class="crew-number"></span><span class="fleet-copy"><span class="fleet-name"></span>' +
+      '<span class="fleet-track"><span></span></span></span>' +
+      '<span class="fleet-stats"><span class="fleet-place"></span>' +
+      '<span class="fleet-coins"><svg aria-hidden="true"><use href="#i-coin"/></svg><b></b></span></span>' +
+      '<svg class="fleet-crown" aria-hidden="true"><use href="#i-crown"/></svg>';
+    chip.querySelector('.crew-number').textContent = id;
+    chip.addEventListener('click', () => selectTeam(id));
+    $('fleetBar').appendChild(chip);
+    fleetElements.set(id, chip);
+  }
+
+  function ranking() {
+    const sorted = active().slice().sort((a, b) => b.position - a.position || b.coins - a.coins);
+    const places = new Map();
+    sorted.forEach((team, index) => {
+      const previous = sorted[index - 1];
+      const tie = previous && previous.position === team.position && previous.coins === team.coins;
+      places.set(team.id, tie ? places.get(previous.id) : index + 1);
+    });
+    return places;
+  }
+
+  function renderFleet(positions) {
+    const places = ranking();
+    const anyMoved = active().some(team => team.position > 0);
+    $('fleetBar').style.setProperty('--fleet-count', game.count);
+    for (const team of game.teams) {
+      const chip = fleetElements.get(team.id);
+      const visible = team.id <= game.count;
+      chip.hidden = !visible;
+      if (!visible) continue;
+      const position = positions?.get(team.id) ?? team.position;
+      const place = places.get(team.id);
+      const arrived = position === game.routeLength;
+      const isSelected = team.id === game.selected;
+      chip.classList.toggle('selected', isSelected);
+      chip.classList.toggle('arrived', arrived);
+      chip.classList.toggle('leader', anyMoved && place === 1);
+      chip.disabled = busy;
+      chip.setAttribute('aria-pressed', String(isSelected));
+      chip.querySelector('.fleet-name').textContent = C.teamName(team);
+      chip.querySelector('.fleet-track span').style.width = (position / game.routeLength * 100) + '%';
+      chip.querySelector('.fleet-place').textContent = arrived ? 'Isla' : place + 'º';
+      chip.querySelector('.fleet-coins b').textContent = team.coins;
+      chip.setAttribute('aria-label', C.teamName(team) + ', ' + (arrived ? 'en la isla' : 'puesto ' + place +
+        ', casilla ' + position + ' de ' + game.routeLength) + ', ' + coinText(team.coins));
+      chip.title = C.teamName(team);
+    }
   }
 
   function addNameFields(id, color) {
@@ -345,9 +436,6 @@
       card.querySelector('.last-roll').textContent = rollLabel(team.lastRoll);
       card.querySelector('.balance').textContent = team.coins;
       card.querySelector('.balance').setAttribute('aria-label', coinText(team.coins));
-      const add = card.querySelector('.coin-add');
-      add.setAttribute('aria-label', 'Dar una moneda a ' + primaryName);
-      add.disabled = busy || team.coins >= 999;
       placeShip(team.id, team.position, ...offsets.get(team.id));
       ship.classList.toggle('selected', isSelected);
       ship.setAttribute('tabindex', busy ? -1 : 0);
@@ -369,6 +457,7 @@
   function render() {
     drawRoute();
     renderTeams();
+    renderFleet();
     const team = selected();
     const arrived = active().filter(atTreasure).length;
 
@@ -376,12 +465,11 @@
     showSelectedPosition(team.position);
     $('rollOutcome').textContent = rollLabel(team.lastRoll);
     $('rollOutcome').hidden = !team.lastRoll || team.lastRoll.mode === 'roll';
-    $('selectedCoins').textContent = coinText(team.coins);
-    $('shopBtn').setAttribute('aria-label', 'Canjes y ayudas · ' + coinText(team.coins));
+    $('selectedCoins').textContent = team.coins;
+    $('shopBtn').setAttribute('aria-label', 'Tienda de canjes · ' + C.teamName(team) + ' tiene ' + coinText(team.coins));
+    $('coinTeam').textContent = C.teamName(team) + ' · ' + coinText(team.coins);
     $('adjustTeam').textContent = C.teamName(team) + ' · ' +
       (atTreasure(team) ? 'En la isla' : 'Casilla ' + team.position + ' de ' + game.routeLength);
-    $('upgradeHint').textContent = C.rollProblem(game, team) ||
-      (team.coins < C.SHOP.reroll.cost ? 'Necesitas al menos 2 monedas.' : 'Puedes usar un canje en esta tirada.');
     $('roundLabel').textContent = 'Ronda ' + game.round;
     $('routeLengthLabel').textContent = game.routeLength + ' casillas';
     $('arrivalCount').textContent = arrived + ' de ' + game.count + ' en la isla';
@@ -392,8 +480,9 @@
     $('undoBtn').disabled = busy || !history.length;
     $('backBtn').disabled = busy || team.position === 0;
     $('forwardBtn').disabled = busy || atTreasure(team);
-    $('rerollBtn').disabled = busy || Boolean(C.buyProblem(game, team, 'reroll'));
-    $('doubleBtn').disabled = busy || Boolean(C.buyProblem(game, team, 'double'));
+    $('coinMinusBtn').disabled = busy || team.coins === 0;
+    $('coinPlusBtn').disabled = busy || team.coins >= 999;
+    $('coinAllBtn').disabled = busy;
     for (const id of ['crewBtn', 'optionsBtn', 'shopBtn', 'timerBadge', 'resetBtn']) {
       $(id).disabled = busy;
     }
@@ -455,13 +544,14 @@
     try {
       if (rolling) {
         stage.classList.add('rolling');
-        faces = setInterval(() => drawDie(randomDie(), die), 95);
+        faces = setInterval(() => { drawDie(randomDie(), die); sfx.tick(); }, 95);
         await wait(ROLL_TIME);
         clearInterval(faces);
         stage.classList.remove('rolling');
       }
       drawDie(lead.lastRoll.face, die);
       stage.classList.add('revealed');
+      sfx.land();
       const result = describeRoll(previous.teams[lead.id - 1], lead);
       $('rollStageResult').textContent = isRound ? 'Salió ' + lead.lastRoll.face : result;
       if (isRound) showRoundResults(teams);
@@ -514,6 +604,8 @@
       await glideOneStep(positions, next);
       for (const stop of touched) routeDots[stop].classList.add('current-step');
       for (const [id, stop] of next) showCrewPosition(cardElements.get(id), stop);
+      renderFleet(next);
+      sfx.step();
       showSelectedPosition(next.get(game.selected));
       await wait(STEP_PAUSE);
       for (const stop of touched) routeDots[stop].classList.remove('current-step');
@@ -521,7 +613,7 @@
     }
   }
 
-  async function playDice(action, teamIds, mode) {
+  async function playDice(action, teamIds, mode, showDice = true) {
     const previous = game;
     let next;
     try {
@@ -535,7 +627,7 @@
     render();
     saveAction(next);
     try {
-      await revealDice(previous, teamIds, mode);
+      if (showDice) await revealDice(previous, teamIds, mode);
       await sailFleet(previous, mode);
     } finally {
       $('mapMessage').hidden = true;
@@ -557,18 +649,63 @@
     await playDice({ type, dice }, moving.map(team => team.id), type);
   }
 
-  async function useRollUpgrade(key) {
+  function coinBurst(cost, origin) {
+    const purse = $('shopPurse');
+    purse.classList.remove('spent');
+    void purse.offsetWidth;
+    purse.classList.add('spent');
+    if (!cost || reduceMotion.matches) return;
+    const float = document.createElement('span');
+    float.className = 'coin-float';
+    float.textContent = '−' + cost;
+    purse.appendChild(float);
+    setTimeout(() => float.remove(), 1100);
+    if (!origin) return;
+    const from = origin.getBoundingClientRect();
+    const to = purse.getBoundingClientRect();
+    for (let i = 0; i < Math.min(cost, 6); i++) {
+      const coin = document.createElement('span');
+      coin.className = 'flying-coin';
+      coin.style.left = (from.right - 40) + 'px';
+      coin.style.top = (from.top + from.height / 2 - 10) + 'px';
+      coin.style.setProperty('--dx', (to.left + to.width / 2 - from.right + 40) + 'px');
+      coin.style.setProperty('--dy', (to.top + to.height / 2 - from.top - from.height / 2) + 'px');
+      coin.style.animationDelay = (i * 70) + 'ms';
+      $('shopDialog').appendChild(coin);
+      setTimeout(() => coin.remove(), 900 + i * 70);
+    }
+  }
+
+  async function spend(key, button) {
     if (busy) return;
     const team = selected();
+    const item = C.SHOP[key];
     const issue = C.buyProblem(game, team, key);
-    if (issue) return;
+    if (issue) {
+      sfx.denied();
+      toast(issue);
+      return;
+    }
+    sfx.coin();
+    if (!item.roll && !item.steps) {
+      if (commit({ type: 'buy', item: key })) {
+        renderShop();
+        coinBurst(item.cost, $('shopItems').querySelector('[data-item="' + key + '"]'));
+        const card = $('shopItems').querySelector('[data-item="' + key + '"]');
+        card?.classList.add('bought');
+        toast('¡Canje! ' + C.teamName(team) + ' · ' + item.name + (item.cost ? ' · −' + coinText(item.cost) : ''));
+      }
+      return;
+    }
+    coinBurst(item.cost, button);
     const action = { type: 'buy', id: team.id, item: key };
-    if (key === 'reroll') action.face = randomDie();
+    if (item.effect === 'reroll') action.face = randomDie();
+    await wait(reduceMotion.matches ? 0 : 450);
     $('shopDialog').close();
-    if (await playDice(action, [team.id], key) && !$('treasureDialog').open) {
+    if (await playDice(action, [team.id], item.effect || 'steps', item.roll) && !$('treasureDialog').open) {
       const updated = game.teams[team.id - 1];
-      const summary = rollLabel(updated.lastRoll) + ' · Casilla ' + updated.position;
-      toast(summary + ' · −' + coinText(C.SHOP[key].cost));
+      const summary = (item.roll ? rollLabel(updated.lastRoll) : item.name) + ' · Casilla ' + updated.position;
+      toast(summary + (item.cost ? ' · −' + coinText(item.cost) : ''));
     }
   }
 
@@ -642,31 +779,49 @@
 
   function renderShop() {
     const team = selected();
-    $('shopBalance').textContent = C.teamName(team) + ' · ' + coinText(team.coins);
-    $('shopItems').replaceChildren();
-    for (const [key, description] of Object.entries(SHOP_TEXT)) {
-      const item = C.SHOP[key];
+    $('shopTeam').textContent = C.teamName(team);
+    $('shopBalance').textContent = team.coins;
+    $('shopBalance').setAttribute('aria-label', coinText(team.coins));
+    $('shopPurse').style.setProperty('--ship-color', C.COLORS[team.id - 1]);
+    $('shopCrews').replaceChildren(...active().map(crew => {
       const button = document.createElement('button');
-      button.className = 'shop-item';
-      button.disabled = busy || Boolean(C.buyProblem(game, team, key));
-      const copy = document.createElement('span');
-      const name = document.createElement('strong');
-      const detail = document.createElement('small');
-      const price = document.createElement('span');
-      name.textContent = item.name;
-      detail.textContent = description;
-      copy.append(name, detail);
-      price.className = 'shop-price';
-      price.textContent = coinText(item.cost);
-      button.append(copy, price);
+      button.type = 'button';
+      button.className = 'crew-number shop-crew';
+      button.textContent = crew.id;
+      button.style.setProperty('--ship-color', C.COLORS[crew.id - 1]);
+      button.title = C.teamName(crew);
+      button.setAttribute('aria-label', C.teamName(crew) + ', ' + coinText(crew.coins));
+      button.setAttribute('aria-pressed', String(crew.id === team.id));
       button.addEventListener('click', () => {
-        if (commit({ type: 'buy', item: key }) && $('shopDialog').open) {
-          renderShop();
-          $('shopBalance').focus();
-        }
+        selectTeam(crew.id);
+        renderShop();
       });
-      $('shopItems').appendChild(button);
-    }
+      return button;
+    }));
+    $('shopItems').replaceChildren(...Object.entries(C.SHOP).map(([key, item]) => {
+      const problem = C.buyProblem(game, team, key);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'shop-card';
+      button.dataset.item = key;
+      button.dataset.effect = item.effect || 'none';
+      button.classList.toggle('locked', Boolean(problem));
+      button.setAttribute('aria-disabled', String(Boolean(problem) || busy));
+      button.innerHTML =
+        '<span class="shop-icon" aria-hidden="true"><svg><use href="#' + SHOP_ICONS[item.effect] + '"/></svg></span>' +
+        '<span class="shop-copy"><strong></strong><small></small></span>' +
+        '<span class="shop-price"><svg aria-hidden="true"><use href="#i-coin"/></svg><b></b></span>' +
+        '<span class="shop-lock"></span>';
+      button.querySelector('strong').textContent = item.name;
+      button.querySelector('small').textContent = item.description;
+      button.querySelector('small').hidden = !item.description;
+      button.querySelector('.shop-price b').textContent = item.cost || 'Gratis';
+      button.querySelector('.shop-lock').textContent = problem;
+      button.setAttribute('aria-label', item.name + ', ' + (item.cost ? coinText(item.cost) : 'gratis') +
+        (problem ? '. No disponible: ' + problem : ''));
+      button.addEventListener('click', () => spend(key, button));
+      return button;
+    }));
   }
 
   function remaining() {
@@ -693,6 +848,7 @@
     addShipMarker(id, color);
     addCrewCard(id, color);
     addNameFields(id, color);
+    addFleetChip(id, color);
   });
 
   document.querySelectorAll('[data-close]').forEach(button =>
@@ -718,8 +874,30 @@
 
   $('rollBtn').addEventListener('click', () => roll(false));
   $('roundBtn').addEventListener('click', () => roll(true));
-  $('rerollBtn').addEventListener('click', () => useRollUpgrade('reroll'));
-  $('doubleBtn').addEventListener('click', () => useRollUpgrade('double'));
+  $('coinPlusBtn').addEventListener('click', () => {
+    if (commit({ type: 'coin', amount: 1 })) sfx.earn();
+  });
+  $('coinMinusBtn').addEventListener('click', () => commit({ type: 'coin', amount: -1 }));
+  $('coinAllBtn').addEventListener('click', () => {
+    if (commit({ type: 'coinAll', amount: 1 })) {
+      sfx.earn();
+      toast('Toda la flota recibe +1 moneda.');
+    }
+  });
+  function renderSound() {
+    const label = soundOn ? 'Sonido activado' : 'Sonido desactivado';
+    $('soundBtn').setAttribute('aria-pressed', String(soundOn));
+    $('soundBtn').setAttribute('aria-label', label);
+    $('soundBtn').title = label;
+    $('soundBtn').querySelector('use').setAttribute('href', soundOn ? '#i-sound' : '#i-mute');
+  }
+  $('soundBtn').addEventListener('click', () => {
+    soundOn = !soundOn;
+    try { localStorage.setItem(SOUND_KEY, soundOn ? 'si' : 'no'); } catch (_) { /* sin almacenamiento */ }
+    renderSound();
+    if (soundOn) sfx.coin();
+  });
+  renderSound();
   $('undoBtn').addEventListener('click', () => {
     if (busy || !history.length) return;
     game = history.pop();
@@ -902,6 +1080,11 @@
 
   render();
   renderTimer();
+  if (C.SHOP_ERROR) {
+    $('shopWarning').textContent = C.SHOP_ERROR;
+    $('shopWarning').hidden = false;
+    console.warn(C.SHOP_ERROR);
+  }
   if (loadWarning) {
     $('saveStatus').textContent = 'Revisa el guardado antes de continuar';
     toast(loadWarning);

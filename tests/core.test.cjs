@@ -115,7 +115,7 @@ test('cada barco puede usar un canje por tirada y una tirada nueva permite otro 
 test('un canje con saldo insuficiente no cambia la jugada y los apoyos mantienen su precio', () => {
   let game = C.apply(C.initial(), { type: 'buy', item: 'hint' });
   game = roll(game, 3);
-  assert.throws(() => C.apply(game, { type: 'buy', item: 'double' }), /suficientes/);
+  assert.throws(() => C.apply(game, { type: 'buy', item: 'double' }), /Falta 1 moneda/);
   assert.equal(game.teams[0].coins, 2);
   assert.equal(game.teams[0].position, 3);
   game = C.apply(game, { type: 'buy', item: 'example' });
@@ -174,4 +174,38 @@ test('un respaldo de otra aplicación o con datos fuera del rango se rechaza', (
     timer: { minutes: 15, remaining: -1, deadline: 0 }
   };
   assert.throws(() => C.backup(badTimer), /reloj/);
+});
+
+test('la tabla de canjes de dist/canjes.js es válida y se puede reemplazar', () => {
+  const vm = require('node:vm');
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const sandbox = { window: {} };
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../dist/canjes.js'), 'utf8'), sandbox);
+  const shop = C.buildShop(sandbox.window.TABLA_CANJES);
+  assert.ok(Object.keys(shop).length > 0);
+
+  const custom = C.buildShop([
+    { id: 'comodin', nombre: 'Comodín', precio: 4 },
+    { id: 'turbo', nombre: 'Turbo', precio: 1, efecto: 'avanzar', casillas: 3 }
+  ]);
+  assert.equal(custom.comodin.effect, '');
+  assert.equal(custom.turbo.steps, 3);
+  assert.throws(() => C.buildShop([{ id: 'x', nombre: 'X', precio: -1 }]), /precio/);
+  assert.throws(() => C.buildShop([{ id: 'x', nombre: 'X', precio: 1, efecto: 'volar' }]), /efecto/);
+  assert.throws(() => C.buildShop([{ id: 'x', nombre: 'X', precio: 1 }, { id: 'x', nombre: 'Y', precio: 1 }]), /único/);
+  assert.throws(() => C.buildShop([{ id: 'x', nombre: 'X', precio: 1, efecto: 'avanzar' }]), /casillas/);
+});
+
+test('un canje sin efecto solo descuenta monedas y queda en la bitácora', () => {
+  const game = C.apply(C.initial(), { type: 'buy', item: 'hint' });
+  assert.equal(game.teams[0].coins, 2);
+  assert.equal(game.teams[0].position, 0);
+  assert.match(game.log[0], /Pista extra · −1 moneda\./);
+});
+
+test('el relator puede dar una moneda a toda la flota activa', () => {
+  const game = C.apply(settings(C.initial(), { count: 3 }), { type: 'coinAll', amount: 1 });
+  assert.deepEqual(game.teams.map(team => team.coins), [4, 4, 4, 3, 3, 3, 3]);
+  assert.throws(() => C.apply(game, { type: 'coinAll', amount: 0 }), /saldo/);
 });
