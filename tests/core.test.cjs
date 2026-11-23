@@ -68,7 +68,7 @@ test('acortar la ruta limita todos los barcos y ampliar preserva las casillas re
   game = settings(game, { routeLength: 30 });
   assert.equal(game.teams[0].position, 18);
   assert.equal(game.teams[0].lastRoll.from, null);
-  assert.throws(() => C.apply(game, { type: 'buy', item: 'double' }), /Lanza el dado/);
+  assert.throws(() => C.apply(game, { type: 'buy', item: 'double' }), /Primero lancen el dado/);
 });
 
 test('la llegada no requiere un número exacto y las demás tripulaciones siguen navegando', () => {
@@ -105,7 +105,7 @@ test('cada barco puede usar un canje por tirada y una tirada nueva permite otro 
   game = C.apply(game, { type: 'buy', item: 'double' });
   assert.equal(game.teams[0].position, 8);
   assert.throws(() => C.apply(game, { type: 'buy', item: 'reroll', face: 6 }), /Ya usaste/);
-  assert.throws(() => C.apply(game, { type: 'buy', id: 2, item: 'reroll', face: 6 }), /Lanza el dado/);
+  assert.throws(() => C.apply(game, { type: 'buy', id: 2, item: 'reroll', face: 6 }), /Primero lancen el dado/);
   game = roll(game, 2);
   game = C.apply(game, { type: 'buy', item: 'reroll', face: 3 });
   assert.equal(game.teams[0].position, 11);
@@ -129,7 +129,7 @@ test('los ajustes manuales se limitan al recorrido e invalidan el canje de la ti
   game = roll(game, 3);
   game = C.apply(game, { type: 'move', amount: 1 });
   assert.equal(game.teams[0].position, 4);
-  assert.throws(() => C.apply(game, { type: 'buy', item: 'reroll', face: 6 }), /Lanza el dado/);
+  assert.throws(() => C.apply(game, { type: 'buy', item: 'reroll', face: 6 }), /Primero lancen el dado/);
   game = C.apply(game, { type: 'move', amount: 40 });
   assert.equal(game.teams[0].position, 25);
 });
