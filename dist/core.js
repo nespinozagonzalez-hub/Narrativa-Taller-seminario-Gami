@@ -57,7 +57,7 @@
   }
 
   function validate(input) {
-    if (!input || ![1, VERSION].includes(input.version) || ![6, 7].includes(input.count) ||
+    if (!input || ![1, VERSION].includes(input.version) || !integer(input.count, 2, 7) ||
         !integer(input.selected, 1, input.count) || !integer(input.round, 0, 10000) ||
         !integer(input.chapter, 0, 2) || !Array.isArray(input.teams) || input.teams.length !== 7) {
       throw new Error('El respaldo no tiene el formato de esta aventura.');
@@ -169,7 +169,7 @@
       setPosition(team, position);
       record(teamName(team) + ': ajuste a la casilla ' + team.position + '.');
     } else if (action.type === 'settings') {
-      if (![6, 7].includes(action.count) || !Array.isArray(action.names) || action.names.length !== 7) {
+      if (!integer(action.count, 2, 7) || !Array.isArray(action.names) || action.names.length !== 7) {
         throw new Error('Revisa los nombres y el número de tripulaciones.');
       }
       if (!integer(action.routeLength, MIN_STEPS, MAX_STEPS)) {

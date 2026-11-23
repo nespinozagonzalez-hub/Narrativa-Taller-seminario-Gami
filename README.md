@@ -4,7 +4,7 @@ Tablero para acompañar la narrativa pirata de la mañana del taller de gamifica
 
 ## Qué incluye
 
-- Seis o siete barcos, con nombres independientes para la tripulación y la embarcación.
+- Entre dos y siete barcos, con nombres independientes para la tripulación y la embarcación.
 - Mapa ilustrado con 25 casillas por defecto, ajustable entre 6 y 40.
 - Dado para la tripulación seleccionada o una tirada independiente para cada barco en una ronda completa.
 - Tres escenas narrativas: partida, travesía y tesoro.
@@ -17,7 +17,7 @@ Tablero para acompañar la narrativa pirata de la mañana del taller de gamifica
 
 ## Usar durante el taller
 
-1. En **Opciones → Preparar expedición**, elige seis o siete equipos y escribe sus nombres. Usa **+** o **−** junto al largo de la ruta para ajustar las casillas hasta el tesoro.
+1. En **Opciones → Preparar expedición**, elige entre dos y siete equipos y escribe sus nombres. Usa **+** o **−** junto al largo de la ruta para ajustar las casillas hasta el tesoro.
 2. Abre **Opciones → Narrativa** para presentar la partida o cambiar la etapa que acompaña el tablero. Usa el botón de pantalla completa si vas a proyectar el mapa.
 3. Elige un barco en el mapa o en **Tripulaciones**. Lanza para ese equipo o usa **Ronda completa**.
 4. En **Tripulaciones**, el botón **+** junto al saldo entrega una moneda. Pulsa el saldo en la barra inferior para abrir **Canjes y ayudas**. **Volver a tirar** sustituye el resultado anterior por el nuevo, incluso si sale un número menor. **Duplicar tirada** multiplica por dos el valor que salió.
@@ -37,6 +37,6 @@ En **Settings → Pages**, elige **Deploy from a branch**, rama **main** y carpe
 
 ## Comprobar la lógica
 
-Con Node.js ejecuta `node --test tests/core.test.cjs`. Las pruebas cubren rondas, canjes del dado, largo del recorrido, modo de seis equipos y compatibilidad con respaldos anteriores.
+Con Node.js ejecuta `node --test tests/core.test.cjs`. Las pruebas cubren rondas de dos a siete equipos, canjes del dado, largo del recorrido y compatibilidad con respaldos anteriores.
 
 Consulta [PREPARACION.md](PREPARACION.md) para el resto de los materiales del taller.

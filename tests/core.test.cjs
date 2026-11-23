@@ -26,12 +26,26 @@ test('la ruta empieza con 25 casillas y cada barco recibe su propio dado en una 
   assert.equal(after.round, 1);
 });
 
-test('seis barcos conservan el progreso del séptimo sin incluirlo en la ronda', () => {
-  let game = C.apply(C.initial(), { type: 'move', id: 7, amount: 12 });
-  game = settings(game, { count: 6 });
-  game = C.apply(game, { type: 'rollAll', dice: { 1: 2, 2: 2, 3: 2, 4: 2, 5: 2, 6: 2 } });
-  assert.equal(game.teams[6].position, 12);
-  assert.equal(settings(game, { count: 7 }).teams[6].position, 12);
+test('entre dos y siete barcos participan en la ronda y se conserva la flota inactiva', () => {
+  const original = C.apply(C.initial(), { type: 'move', id: 7, amount: 12 });
+  original.selected = 7;
+  for (let count = 2; count <= 7; count++) {
+    let game = settings(original, { count });
+    const dice = Object.fromEntries(Array.from({ length: count }, (_, i) => [i + 1, 2]));
+    game = C.apply(game, { type: 'rollAll', dice });
+    assert.equal(game.count, count);
+    assert.equal(game.selected, count);
+    assert.deepEqual(game.teams.slice(count), original.teams.slice(count));
+    assert.deepEqual(
+      game.teams.slice(0, count).map(team => team.position),
+      original.teams.slice(0, count).map(team => team.position + 2)
+    );
+    assert.deepEqual(settings(game, { count: 7 }).teams, game.teams);
+  }
+  for (const count of [1, 8, 2.5, '2']) {
+    assert.throws(() => settings(original, { count }), /tripulaciones/);
+    assert.throws(() => C.validate({ ...original, count }), /formato/);
+  }
 });
 
 test('se puede guardar el nombre de un barco, su tripulación o ambos', () => {
@@ -121,7 +135,7 @@ test('los ajustes manuales se limitan al recorrido e invalidan el canje de la ti
 });
 
 test('respaldos nuevos conservan ruta, resultado del canje, historial y reloj', () => {
-  let game = settings(C.initial(), { routeLength: 28 });
+  let game = settings(C.initial(), { count: 2, routeLength: 28 });
   game = C.apply(roll(game, 4), { type: 'buy', item: 'double' });
   const original = {
     app: 'ruta-del-tesoro', version: C.VERSION, game,

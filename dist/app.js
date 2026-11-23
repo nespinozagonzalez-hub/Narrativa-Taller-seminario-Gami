@@ -609,7 +609,10 @@
   }
 
   function updateNameVisibility() {
-    $('nameRow7').hidden = $('teamCount').value === '6';
+    const count = Number($('teamCount').value);
+    for (const team of game.teams) {
+      $('nameRow' + team.id).hidden = team.id > count;
+    }
   }
 
   function updateLengthControls() {

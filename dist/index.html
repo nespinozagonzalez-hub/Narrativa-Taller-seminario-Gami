@@ -8,9 +8,9 @@
   <title>La ruta del tesoro · Taller de gamificación</title>
   <link rel="icon" href="./assets/cofre-pirata.webp" type="image/webp">
   <link rel="stylesheet" href="styles.css?v=5">
-  <script src="core.js?v=2" defer></script>
+  <script src="core.js?v=6" defer></script>
   <script src="cinematic.js?v=5" defer></script>
-  <script src="app.js?v=5" defer></script>
+  <script src="app.js?v=6" defer></script>
 </head>
 <body>
   <svg class="icon-library" aria-hidden="true">
@@ -197,7 +197,14 @@
       </div>
       <div class="settings-grid">
         <label class="field">Barcos en el mapa
-          <select id="teamCount"><option value="7">7 tripulaciones</option><option value="6">6 tripulaciones</option></select>
+          <select id="teamCount">
+            <option value="7">7 tripulaciones</option>
+            <option value="6">6 tripulaciones</option>
+            <option value="5">5 tripulaciones</option>
+            <option value="4">4 tripulaciones</option>
+            <option value="3">3 tripulaciones</option>
+            <option value="2">2 tripulaciones</option>
+          </select>
         </label>
         <div class="field">
           <label for="routeLength">Casillas hasta el tesoro</label>
@@ -261,7 +268,7 @@
   <dialog id="helpDialog" aria-labelledby="helpTitle">
     <div class="dialog-heading"><h2 id="helpTitle">Listos para zarpar</h2><button class="close-button" data-close aria-label="Cerrar">×</button></div>
     <ol class="help-list">
-      <li><strong>Prepara la expedición.</strong> En Opciones, elige seis o siete barcos, edita sus nombres y ajusta el largo de la ruta.</li>
+      <li><strong>Prepara la expedición.</strong> En Opciones, elige entre dos y siete barcos, edita sus nombres y ajusta el largo de la ruta.</li>
       <li><strong>Navega.</strong> Selecciona un barco y lanza el dado. En una ronda completa cada barco que sigue en viaje obtiene su propia tirada.</li>
       <li><strong>Usa tus monedas.</strong> Con 2 monedas puedes volver a tirar y quedarte con el nuevo resultado, aunque sea menor. Con 3 puedes duplicar el valor que sacaste. Puedes elegir un canje por tirada.</li>
       <li><strong>Lleva el ritmo.</strong> En Opciones encontrarás el reloj y los botones −1 y +1 para ajustar la posición del barco seleccionado.</li>
