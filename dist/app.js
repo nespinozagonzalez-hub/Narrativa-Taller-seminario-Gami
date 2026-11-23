@@ -132,14 +132,10 @@
 
   function showTreasure(teams) {
     if (!teams.length) return;
-    const wholeFleet = active().every(atTreasure);
-    $('treasureTitle').textContent = wholeFleet ? '¡La flota encontró el tesoro!' : '¡Tesoro descubierto!';
-    $('treasureTeams').textContent = listNames.format(teams.map(C.teamName));
-    $('treasureLine').textContent = '«¡Por las siete mareas! Han encontrado un tesoro increíble. ' +
-      (wholeFleet ? '¡Que todo el puerto se entere de lo que logró esta flota!»'
-        : '¡Que ruede la voz y que las demás tripulaciones sigan el rumbo!»');
-    $('treasureChallenge').hidden = !wholeFleet;
-    open('treasureDialog');
+    window.TreasureCinema.play({
+      names: listNames.format(teams.map(C.teamName)),
+      wholeFleet: active().every(atTreasure)
+    });
   }
 
   function commit(action) {
@@ -398,7 +394,7 @@
     $('forwardBtn').disabled = busy || atTreasure(team);
     $('rerollBtn').disabled = busy || Boolean(C.buyProblem(game, team, 'reroll'));
     $('doubleBtn').disabled = busy || Boolean(C.buyProblem(game, team, 'double'));
-    for (const id of ['crewBtn', 'optionsBtn', 'shopBtn', 'timerBadge']) {
+    for (const id of ['crewBtn', 'optionsBtn', 'shopBtn', 'timerBadge', 'resetBtn']) {
       $(id).disabled = busy;
     }
     $('treasureBtn').hidden = arrived === 0;
@@ -732,6 +728,7 @@
   $('forwardBtn').addEventListener('click', () => commit({ type: 'move', amount: 1 }));
   $('crewBtn').addEventListener('click', () => open('crewDialog'));
   $('optionsBtn').addEventListener('click', () => open('optionsDialog'));
+  $('cinemaPreviewBtn').addEventListener('click', () => showTreasure([selected()]));
   $('helpBtn').addEventListener('click', () => open('helpDialog'));
   $('timerOpenBtn').addEventListener('click', () => open('timerDialog'));
   $('timerBadge').addEventListener('click', () => open('timerDialog'));
@@ -770,21 +767,27 @@
       toast('Expedición guardada · ' + game.count + ' barcos · ' + game.routeLength + ' casillas.');
     }
   });
-  $('resetBtn').addEventListener('click', () => confirm(
-    '¿Empezamos una nueva aventura?',
-    'Se reiniciarán nombres, posiciones, monedas y reloj. Descarga un respaldo si quieres conservar esta partida.',
-    () => {
-      game = C.initial();
-      history = [];
-      timer = initialTimer();
-      $('timerMinutes').value = timer.minutes;
-      persist();
-      render();
-      renderTimer();
-      $('settingsDialog').close();
-      toast('Nueva aventura preparada.');
-    }
-  ));
+  function requestRestart() {
+    if (busy) return;
+    confirm(
+      '¿Reiniciar la aventura?',
+      'Todos los barcos volverán al puerto. Se restablecerán los nombres, las 25 casillas, las 3 monedas iniciales y el reloj. Descarga un respaldo si quieres conservar esta partida.',
+      () => {
+        window.TreasureCinema.close();
+        document.querySelectorAll('dialog[open]').forEach(dialog => dialog.close());
+        game = C.initial();
+        history = [];
+        timer = initialTimer();
+        $('timerMinutes').value = timer.minutes;
+        persist();
+        render();
+        renderTimer();
+        toast('Nueva aventura preparada.');
+      }
+    );
+  }
+  $('resetBtn').addEventListener('click', requestRestart);
+  $('cinemaRestartBtn').addEventListener('click', requestRestart);
 
   $('storyBtn').addEventListener('click', () => {
     scenePreview = game.chapter;

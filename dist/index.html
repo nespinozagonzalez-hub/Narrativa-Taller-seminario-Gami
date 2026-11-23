@@ -7,9 +7,10 @@
   <meta name="description" content="Tablero pirata del taller de gamificación. Navega por el mapa con tu tripulación, lanza el dado y usa tus monedas para llegar al tesoro.">
   <title>La ruta del tesoro · Taller de gamificación</title>
   <link rel="icon" href="./assets/cofre-pirata.webp" type="image/webp">
-  <link rel="stylesheet" href="styles.css?v=4">
+  <link rel="stylesheet" href="styles.css?v=5">
   <script src="core.js?v=2" defer></script>
-  <script src="app.js?v=4" defer></script>
+  <script src="cinematic.js?v=5" defer></script>
+  <script src="app.js?v=5" defer></script>
 </head>
 <body>
   <svg class="icon-library" aria-hidden="true">
@@ -25,6 +26,7 @@
       <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 22V3c5-5 9 5 15 0v12c-6 5-10-5-15 0"/></symbol>
       <symbol id="i-pencil" viewBox="0 0 24 24"><path d="m4 16 12-12 4 4L8 20H4zm10-10 4 4"/></symbol>
       <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></symbol>
+      <symbol id="i-restart" viewBox="0 0 24 24"><path d="M3 10a9 9 0 1 1 2 8M3 3v7h7"/></symbol>
     </defs>
   </svg>
   <div class="app">
@@ -40,6 +42,9 @@
         </button>
         <button class="quiet" id="optionsBtn" title="Opciones" aria-label="Opciones" aria-haspopup="dialog">
           <svg aria-hidden="true"><use href="#i-settings"/></svg><span>Opciones</span>
+        </button>
+        <button class="quiet restart-button" id="resetBtn" title="Reiniciar aventura" aria-label="Reiniciar aventura" aria-haspopup="dialog">
+          <svg aria-hidden="true"><use href="#i-restart"/></svg><span>Reiniciar</span>
         </button>
         <button class="icon-button" id="fullscreenBtn" aria-label="Activar pantalla completa" title="Pantalla completa">
           <svg aria-hidden="true"><use href="#i-expand"/></svg>
@@ -135,6 +140,7 @@
       <button class="secondary" id="logBtn" aria-haspopup="dialog"><svg aria-hidden="true"><use href="#i-book"/></svg>Ver bitácora</button>
       <button class="secondary" id="helpBtn" aria-haspopup="dialog"><svg aria-hidden="true"><use href="#i-help"/></svg>Cómo jugar</button>
       <button class="secondary" id="undoBtn"><svg aria-hidden="true"><use href="#i-undo"/></svg>Deshacer</button>
+      <button class="secondary preview-finale" id="cinemaPreviewBtn" aria-haspopup="dialog"><svg aria-hidden="true"><use href="#i-flag"/></svg>Vista previa del final</button>
     </div>
     <div class="position-adjust" role="group" aria-label="Ajustar casillas de la tripulación seleccionada">
       <div><strong>Ajustar posición</strong><p id="adjustTeam" class="muted"></p></div>
@@ -207,11 +213,10 @@
       <div id="nameFields" class="name-fields"></div>
       <div class="dialog-actions"><button class="primary" type="submit">Guardar expedición</button></div>
       <details class="advanced">
-        <summary>Respaldos y reinicio</summary>
-        <p>Importa una partida guardada o comienza desde el puerto con 3 monedas por barco.</p>
+        <summary>Importar respaldo</summary>
+        <p>Abre una partida guardada para continuar la expedición desde otro computador.</p>
         <div class="advanced-actions">
           <button class="secondary" type="button" id="importBtn">Importar respaldo</button>
-          <button class="danger-button" type="button" id="resetBtn">Reiniciar aventura</button>
         </div>
       </details>
     </form>
@@ -260,7 +265,8 @@
       <li><strong>Navega.</strong> Selecciona un barco y lanza el dado. En una ronda completa cada barco que sigue en viaje obtiene su propia tirada.</li>
       <li><strong>Usa tus monedas.</strong> Con 2 monedas puedes volver a tirar y quedarte con el nuevo resultado, aunque sea menor. Con 3 puedes duplicar el valor que sacaste. Puedes elegir un canje por tirada.</li>
       <li><strong>Lleva el ritmo.</strong> En Opciones encontrarás el reloj y los botones −1 y +1 para ajustar la posición del barco seleccionado.</li>
-      <li><strong>Descubre el tesoro.</strong> Cada tripulación que alcanza la isla recibe un saludo del capitán. Los barcos llegan aunque saquen más que las casillas que faltan.</li>
+      <li><strong>Descubre el tesoro.</strong> Cada llegada abre una cinemática con el Capitán Brújula. Puedes pausar, avanzar o volver al mapa. Los barcos llegan aunque saquen más que las casillas que faltan.</li>
+      <li><strong>Vuelve a zarpar.</strong> El botón Reiniciar de la barra superior prepara una nueva aventura después de tu confirmación.</li>
     </ol>
   </dialog>
 
@@ -270,22 +276,48 @@
     <div class="dialog-actions"><button class="secondary" id="cancelConfirmBtn">Cancelar</button><button class="primary" id="acceptConfirmBtn">Continuar</button></div>
   </dialog>
 
-  <dialog id="treasureDialog" class="treasure-dialog" aria-labelledby="treasureTitle" aria-describedby="treasureTeams treasureLine">
-    <button class="close-button treasure-close" data-close aria-label="Cerrar">×</button>
-    <div class="treasure-scene">
-      <div class="treasure-illustration" aria-hidden="true">
-        <img src="./assets/capitan-del-tesoro.webp" alt="" width="360" height="360" class="captain-art">
-        <img src="./assets/cofre-pirata.webp" alt="" width="140" height="140" class="treasure-art">
+  <dialog id="treasureDialog" class="cinema-dialog" aria-label="El tesoro de la expedición">
+    <div id="cinemaFrame" class="cinema-frame" data-scene="0">
+      <div class="cinema-backdrops" aria-hidden="true">
+        <div class="cinema-backdrop" data-cinema-bg="0"><img src="./assets/final-isla.webp" alt="" width="1440" height="810" decoding="async"></div>
+        <div class="cinema-backdrop" data-cinema-bg="1"><img src="./assets/final-santuario.webp" alt="" width="1440" height="810" decoding="async"></div>
+        <div class="cinema-backdrop" data-cinema-bg="2"><img src="./assets/final-tesoro.webp" alt="" width="1440" height="810" decoding="async"></div>
       </div>
-      <div class="treasure-copy">
-        <p class="eyebrow">Capitán Brújula</p>
-        <h2 id="treasureTitle">¡Tesoro descubierto!</h2>
-        <p id="treasureTeams" class="treasure-teams"></p>
-        <blockquote id="treasureLine"></blockquote>
-        <p id="treasureChallenge" class="treasure-challenge" hidden>Compartan una mecánica que se llevan y cómo la usarían en su próxima clase.</p>
-        <button class="primary" data-close autofocus>Volver al mapa</button>
+      <div class="cinema-mist" aria-hidden="true"></div>
+      <div class="cinema-glow" aria-hidden="true"></div>
+      <div id="cinemaParticles" class="cinema-particles" aria-hidden="true"></div>
+      <div class="cinema-shade" aria-hidden="true"></div>
+      <img id="cinemaCaptain" class="cinema-captain" src="./assets/capitan-del-tesoro.webp" alt="El Capitán Brújula celebra el descubrimiento" width="560" height="560" hidden>
+      <header class="cinema-top">
+        <span class="cinema-brand">La ruta del tesoro</span>
+        <button class="cinema-quiet" data-close aria-label="Volver al mapa y cerrar la cinemática">Volver al mapa <span aria-hidden="true">×</span></button>
+      </header>
+      <section id="cinemaCaption" class="cinema-caption" aria-live="polite" aria-atomic="true" aria-labelledby="treasureTitle">
+        <p id="cinemaKicker" class="cinema-kicker"></p>
+        <h2 id="treasureTitle"></h2>
+        <p id="treasureTeams" class="cinema-teams"></p>
+        <p id="treasureLine" class="cinema-line"></p>
+        <p id="treasureChallenge" class="cinema-challenge" hidden>Compartan una mecánica que se llevan y cómo la usarían en su próxima clase.</p>
+        <div id="cinemaEndActions" class="cinema-end-actions" hidden>
+          <button id="cinemaReplayBtn" class="cinema-quiet">Volver a ver</button>
+          <button id="cinemaRestartBtn" class="cinema-quiet">Reiniciar aventura</button>
+        </div>
+      </section>
+      <footer class="cinema-controls" aria-label="Controles de la cinemática">
+        <div id="cinemaProgress" class="cinema-progress" role="group" aria-label="Escenas del final">
+          <button data-cinema-scene="0" aria-label="Escena 1, la isla" aria-current="step"></button>
+          <button data-cinema-scene="1" aria-label="Escena 2, el santuario"></button>
+          <button data-cinema-scene="2" aria-label="Escena 3, el tesoro"></button>
+          <button data-cinema-scene="3" aria-label="Escena 4, el capitán"></button>
+          <span id="cinemaCounter">1 / 4</span>
+        </div>
+        <div class="cinema-navigation">
+          <button id="cinemaPrevBtn" class="cinema-quiet">Anterior</button>
+          <button id="cinemaPauseBtn" class="cinema-quiet" aria-label="Pausar cinemática">Pausar</button>
+          <button id="cinemaNextBtn" class="cinema-primary" autofocus>Siguiente <span aria-hidden="true">→</span></button>
+        </div>
+      </footer>
       </div>
-    </div>
   </dialog>
   <input id="importFile" type="file" accept=".json,application/json" hidden>
   <div id="toast" class="toast" popover="manual" role="status" aria-live="polite"></div>

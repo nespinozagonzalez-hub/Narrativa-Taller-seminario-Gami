@@ -12,7 +12,8 @@ Tablero para acompañar la narrativa pirata de la mañana del taller de gamifica
 - Monedas por equipo para pistas, ejemplos, consultas y viento a favor.
 - Reloj opcional de 1 a 60 minutos. Solo avisa: las tiradas las decide el relator.
 - Deshacer, bitácora, pantalla completa, guardado local y respaldo JSON exportable/importable.
-- Saludo del Capitán Brújula para cada llegada. Cuando toda la flota alcanza la isla, el capitán propone un cierre para la mañana.
+- Cinemática de llegada en cuatro escenas con tres ilustraciones nuevas, movimientos de cámara, niebla, partículas y el saludo del Capitán Brújula. Permite pausar, avanzar, retroceder y repetir. Cuando toda la flota alcanza la isla, el capitán propone un cierre para la mañana.
+- Botón visible para reiniciar la aventura con confirmación.
 
 ## Usar durante el taller
 
@@ -22,6 +23,7 @@ Tablero para acompañar la narrativa pirata de la mañana del taller de gamifica
 4. En **Tripulaciones**, el botón **+** junto al saldo entrega una moneda. Pulsa el saldo en la barra inferior para abrir **Canjes y ayudas**. **Volver a tirar** sustituye el resultado anterior por el nuevo, incluso si sale un número menor. **Duplicar tirada** multiplica por dos el valor que salió.
 5. En **Opciones** puedes ajustar la posición del barco seleccionado con **−1** y **+1**, iniciar el reloj o consultar la bitácora.
 6. Antes de cambiar de computador o cerrar la jornada, usa **Opciones → Descargar respaldo**. El saldo se conserva para seguir usando las fichas durante la tarde.
+7. En **Opciones → Vista previa del final** puedes revisar la cinemática durante la preparación. **Reiniciar** restablece los nombres, los siete barcos, las 25 casillas, las tres monedas por barco y el reloj después de confirmar.
 
 El tablero se maneja desde el computador del relator. El guardado pertenece a ese navegador; no sincroniza datos entre dispositivos ni entre participantes. Si no puedes usar almacenamiento local, el tablero lo indica y puedes descargar un respaldo. Evita operar una misma partida desde dos pestañas a la vez.
 
