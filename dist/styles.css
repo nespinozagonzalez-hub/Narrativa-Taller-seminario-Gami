@@ -889,8 +889,8 @@ dialog::backdrop { background: #061d28ba; backdrop-filter: blur(4px); }
 .coin-button.bump { animation: coin-bump .5s ease-out; }
 @keyframes coin-bump { 30% { transform: scale(1.12); } 60% { transform: scale(.96); } }
 
-/* ---------- Tienda de canjes ---------- */
-.shop-dialog { width: min(760px, calc(100% - 24px)); }
+/* ---------- Bolsa de monedas ---------- */
+.coin-dialog { width: min(560px, calc(100% - 24px)); }
 .purse {
   display: grid;
   gap: 10px;
@@ -913,138 +913,81 @@ dialog::backdrop { background: #061d28ba; backdrop-filter: blur(4px); }
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 16px 6px 8px;
+  padding: 6px 18px 6px 8px;
   border: 1px solid #7a4d12;
   border-radius: 999px;
   color: #4d300c;
   background: linear-gradient(#ffe39a, #e9b24c);
   box-shadow: inset 0 1px #fff6d3, inset 0 -2px #b9802e;
-  font-size: 1.9rem;
+  font-size: 2.2rem;
   font-weight: bold;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
-.purse-coins svg { width: 30px; height: 30px; fill: #fff0b8; stroke: #6d420c; stroke-width: 1.6; }
-.purse-coins.spent { animation: coin-bump .5s ease-out; }
+.purse-coins svg { width: 34px; height: 34px; fill: #fff0b8; stroke: #6d420c; stroke-width: 1.6; }
+.purse-coins.spent, .purse-coins.earned { animation: coin-bump .5s ease-out; }
+.purse-coins.earned { box-shadow: inset 0 1px #fff6d3, inset 0 -2px #b9802e, 0 0 0 4px #5f9b4d66; }
+.purse-coins.spent { box-shadow: inset 0 1px #fff6d3, inset 0 -2px #b9802e, 0 0 0 4px #8c2a1c55; }
 .coin-float {
   position: absolute;
-  right: 6px;
-  top: -6px;
-  color: #8c2a1c;
-  font-size: 1.3rem;
+  right: 8px;
+  top: -8px;
+  font-size: 1.4rem;
   pointer-events: none;
   animation: coin-float 1.1s ease-out forwards;
 }
+.coin-float.up { color: #2f6b25; }
+.coin-float.down { color: #8c2a1c; }
 @keyframes coin-float { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-34px); } }
-.flying-coin {
-  position: fixed;
-  z-index: 60;
-  width: 20px;
-  height: 20px;
-  border: 1px solid #7a4d12;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fff3c4, #f0b94a 70%);
-  pointer-events: none;
-  animation: coin-fly .75s cubic-bezier(.5, -0.3, .7, 1) both;
-}
-@keyframes coin-fly {
-  from { opacity: 1; transform: translate(0, 0) scale(1); }
-  to { opacity: .2; transform: translate(var(--dx), var(--dy)) scale(.5); }
-}
-.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 8px; }
-.shop-card {
-  position: relative;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  grid-template-rows: 1fr auto;
-  gap: 4px 10px;
-  min-height: 112px;
-  padding: 12px;
-  overflow: hidden;
-  border: 1px solid #a98657;
-  border-radius: 6px;
+.coin-amount { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.coin-amount > span { color: var(--muted); font-size: .8rem; font-weight: bold; letter-spacing: .12em; text-transform: uppercase; }
+.coin-amounts { display: flex; gap: 6px; flex-wrap: wrap; }
+.coin-chip {
+  min-width: 46px;
+  min-height: 42px;
+  padding: 4px 10px;
+  border: 1px solid #a98554;
+  border-radius: 999px;
   color: var(--ink);
   background: #fff3cfcc;
-  box-shadow: 0 2px 0 #a9865766;
-  text-align: left;
-  transition: transform .15s, box-shadow .15s, background .15s;
-}
-.shop-card:hover:not(.locked) { transform: translateY(-2px); background: #fff7dc; box-shadow: 0 5px 12px #6d401f33; border-color: #6d401f; }
-.shop-card:active:not(.locked) { transform: translateY(1px); }
-.shop-icon {
-  display: grid;
-  place-items: center;
-  grid-row: 1 / 3;
-  width: 44px;
-  height: 44px;
-  border: 1px solid #8a5a2c;
-  border-radius: 10px;
-  color: #fff3d1;
-  background: linear-gradient(#894032, var(--wax));
-}
-.shop-card[data-effect="steps"] .shop-icon { background: linear-gradient(#2c6f73, #174a52); }
-.shop-card[data-effect="none"] .shop-icon { background: linear-gradient(#8a6a3a, #5f4521); }
-.shop-icon svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-.shop-copy strong { display: block; font-size: 1rem; }
-.shop-copy small { display: block; margin-top: 3px; color: var(--muted); font-size: .84rem; line-height: 1.35; }
-.shop-price {
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 10px 3px 4px;
-  border: 1px solid #7a4d12;
-  border-radius: 999px;
-  color: #4d300c;
-  background: linear-gradient(#ffe39a, #e9b24c);
+  font-size: 1.1rem;
   font-weight: bold;
   font-variant-numeric: tabular-nums;
 }
-.shop-price svg { width: 18px; height: 18px; fill: #fff0b8; stroke: #6d420c; stroke-width: 1.6; }
-.shop-lock { display: none; }
-.shop-card.locked { cursor: not-allowed; background: #eadcbcaa; box-shadow: none; }
-.shop-card.locked .shop-icon, .shop-card.locked .shop-price { filter: grayscale(.85); opacity: .6; }
-.shop-card.locked .shop-copy { opacity: .7; }
-.shop-card.locked .shop-lock {
-  display: block;
-  grid-column: 2;
-  color: #7a2f22;
-  font-size: .78rem;
+.coin-chip:hover { border-color: #6d401f; }
+.coin-chip[aria-pressed="true"] { border-color: #7a4d12; color: #4d300c; background: linear-gradient(#ffe39a, #e9b24c); box-shadow: inset 0 -2px #b9802e; }
+.coin-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.earn-button, .spend-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 64px;
+  border-radius: 8px;
+  color: #fff6dc;
+  font-size: 1.25rem;
   font-weight: bold;
+  transition: transform .12s, filter .12s;
 }
-.shop-card.locked .shop-price { display: none; }
-.shop-card.bought::after {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  padding: 4px 12px;
-  border: 3px double #8c2a1c;
-  border-radius: 4px;
-  color: #8c2a1c;
-  background: #fff3cfdd;
-  font-family: var(--title-font);
-  font-size: 1.4rem;
-  content: "¡Canjeado!";
-  pointer-events: none;
-  animation: stamp 1.3s ease-out forwards;
-}
-@keyframes stamp {
-  0% { opacity: 0; transform: translate(-50%, -50%) rotate(-12deg) scale(1.8); }
-  18% { opacity: 1; transform: translate(-50%, -50%) rotate(-12deg) scale(1); }
-  75% { opacity: 1; }
-  100% { opacity: 0; transform: translate(-50%, -50%) rotate(-12deg) scale(1); }
-}
+.earn-button { border: 1px solid #234a1c; background: linear-gradient(#5f9b4d, #3a6e2f); box-shadow: inset 0 1px #a6d38f88, inset 0 -3px #234a1c; }
+.spend-button { border: 1px solid #56271c; background: linear-gradient(#a3473a, var(--wax)); box-shadow: inset 0 1px #d99e6e66, inset 0 -3px #56271c; }
+.earn-button:hover:not(:disabled), .spend-button:hover:not(.locked) { filter: brightness(1.08); transform: translateY(-1px); }
+.earn-button:active, .spend-button:active { transform: translateY(1px); }
+.earn-button svg, .spend-button svg { width: 24px; height: 24px; stroke-width: 2.4; }
+.earn-button b, .spend-button b { padding: 2px 10px; border-radius: 999px; background: #00000030; font-variant-numeric: tabular-nums; }
+.spend-button.locked { filter: grayscale(.7); opacity: .6; cursor: not-allowed; }
+.coin-extra { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.coin-history { display: grid; gap: 4px; margin: 10px 0 0; padding: 10px 0 0; border-top: 1px solid var(--line); list-style: none; font-size: .85rem; }
+.coin-history li { padding-left: 10px; border-left: 3px solid; }
+.coin-history li.up { border-color: #5f9b4d; color: #2f5226; }
+.coin-history li.down { border-color: #a3473a; color: #6e2926; }
 .shop-footnote { margin-top: 12px; font-size: .82rem; }
-.warning { margin-bottom: 12px; padding: 9px 12px; border: 1px solid #a85b50; border-radius: 4px; color: #6e2926; background: #f2d2b1; font-size: .875rem; }
-.position-adjust #coinAllBtn { white-space: nowrap; }
 
 @media (max-width: 700px) {
   .fleet-bar { grid-template-columns: repeat(var(--fleet-count, 7), minmax(132px, 1fr)); }
   .coin-button { padding-right: 9px; }
   .coin-copy small { display: none; }
-  .purse-coins { font-size: 1.5rem; }
-  .shop-grid { grid-template-columns: 1fr; }
-  .shop-card { min-height: 0; }
+  .purse-coins { font-size: 1.7rem; }
 }
 @media (max-width: 700px) and (orientation: portrait) {
   .app { grid-template-rows: auto auto minmax(0, 1fr) auto; }

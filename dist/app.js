@@ -24,7 +24,7 @@
     }
   ];
   const CHAPTERS = ['La tripulación se reúne', 'Las ideas toman el timón', 'El tesoro se comparte'];
-  const SHOP_ICONS = { reroll: 'i-dice', double: 'i-double', steps: 'i-wind', '': 'i-scroll' };
+  const COIN_AMOUNTS = [1, 2, 3, 5, 10];
   const PIPS = {
     1: [[27, 27]],
     2: [[14, 14], [40, 40]],
@@ -47,6 +47,7 @@
   let timer = initialTimer();
   let busy = false;
   let scenePreview = 0;
+  let coinAmount = 1;
   let toastTimeout;
   let confirmAction;
   let loadWarning = '';
@@ -466,8 +467,7 @@
     $('rollOutcome').textContent = rollLabel(team.lastRoll);
     $('rollOutcome').hidden = !team.lastRoll || team.lastRoll.mode === 'roll';
     $('selectedCoins').textContent = team.coins;
-    $('shopBtn').setAttribute('aria-label', 'Tienda de canjes · ' + C.teamName(team) + ' tiene ' + coinText(team.coins));
-    $('coinTeam').textContent = C.teamName(team) + ' · ' + coinText(team.coins);
+    $('coinBtn').setAttribute('aria-label', 'Monedas · ' + C.teamName(team) + ' tiene ' + coinText(team.coins));
     $('adjustTeam').textContent = C.teamName(team) + ' · ' +
       (atTreasure(team) ? 'En la isla' : 'Casilla ' + team.position + ' de ' + game.routeLength);
     $('roundLabel').textContent = 'Ronda ' + game.round;
@@ -480,10 +480,7 @@
     $('undoBtn').disabled = busy || !history.length;
     $('backBtn').disabled = busy || team.position === 0;
     $('forwardBtn').disabled = busy || atTreasure(team);
-    $('coinMinusBtn').disabled = busy || team.coins === 0;
-    $('coinPlusBtn').disabled = busy || team.coins >= 999;
-    $('coinAllBtn').disabled = busy;
-    for (const id of ['crewBtn', 'optionsBtn', 'shopBtn', 'timerBadge', 'resetBtn']) {
+    for (const id of ['crewBtn', 'optionsBtn', 'coinBtn', 'timerBadge', 'resetBtn']) {
       $(id).disabled = busy;
     }
     $('treasureBtn').hidden = arrived === 0;
@@ -649,63 +646,34 @@
     await playDice({ type, dice }, moving.map(team => team.id), type);
   }
 
-  function coinBurst(cost, origin) {
-    const purse = $('shopPurse');
-    purse.classList.remove('spent');
+  function coinBurst(amount) {
+    const purse = $('coinPurse');
+    purse.classList.remove('spent', 'earned');
     void purse.offsetWidth;
-    purse.classList.add('spent');
-    if (!cost || reduceMotion.matches) return;
+    purse.classList.add(amount > 0 ? 'earned' : 'spent');
+    if (reduceMotion.matches) return;
     const float = document.createElement('span');
-    float.className = 'coin-float';
-    float.textContent = '−' + cost;
+    float.className = 'coin-float ' + (amount > 0 ? 'up' : 'down');
+    float.textContent = (amount > 0 ? '+' : '−') + Math.abs(amount);
     purse.appendChild(float);
     setTimeout(() => float.remove(), 1100);
-    if (!origin) return;
-    const from = origin.getBoundingClientRect();
-    const to = purse.getBoundingClientRect();
-    for (let i = 0; i < Math.min(cost, 6); i++) {
-      const coin = document.createElement('span');
-      coin.className = 'flying-coin';
-      coin.style.left = (from.right - 40) + 'px';
-      coin.style.top = (from.top + from.height / 2 - 10) + 'px';
-      coin.style.setProperty('--dx', (to.left + to.width / 2 - from.right + 40) + 'px');
-      coin.style.setProperty('--dy', (to.top + to.height / 2 - from.top - from.height / 2) + 'px');
-      coin.style.animationDelay = (i * 70) + 'ms';
-      $('shopDialog').appendChild(coin);
-      setTimeout(() => coin.remove(), 900 + i * 70);
-    }
   }
 
-  async function spend(key, button) {
+  function changeCoins(amount) {
     if (busy) return;
     const team = selected();
-    const item = C.SHOP[key];
-    const issue = C.buyProblem(game, team, key);
-    if (issue) {
+    if (team.coins + amount < 0) {
       sfx.denied();
-      toast(issue);
+      toast('No alcanza: ' + C.teamName(team) + ' tiene ' + coinText(team.coins) + '.');
       return;
     }
-    sfx.coin();
-    if (!item.roll && !item.steps) {
-      if (commit({ type: 'buy', item: key })) {
-        renderShop();
-        coinBurst(item.cost, $('shopItems').querySelector('[data-item="' + key + '"]'));
-        const card = $('shopItems').querySelector('[data-item="' + key + '"]');
-        card?.classList.add('bought');
-        toast('¡Canje! ' + C.teamName(team) + ' · ' + item.name + (item.cost ? ' · −' + coinText(item.cost) : ''));
-      }
-      return;
-    }
-    coinBurst(item.cost, button);
-    const action = { type: 'buy', id: team.id, item: key };
-    if (item.effect === 'reroll') action.face = randomDie();
-    await wait(reduceMotion.matches ? 0 : 450);
-    $('shopDialog').close();
-    if (await playDice(action, [team.id], item.effect || 'steps', item.roll) && !$('treasureDialog').open) {
-      const updated = game.teams[team.id - 1];
-      const summary = (item.roll ? rollLabel(updated.lastRoll) : item.name) + ' · Casilla ' + updated.position;
-      toast(summary + (item.cost ? ' · −' + coinText(item.cost) : ''));
+    if (commit({ type: 'coin', amount })) {
+      amount > 0 ? sfx.earn() : sfx.coin();
+      renderCoins();
+      coinBurst(amount);
+      $('coinBtn').classList.remove('bump');
+      void $('coinBtn').offsetWidth;
+      $('coinBtn').classList.add('bump');
     }
   }
 
@@ -777,50 +745,62 @@
     });
   }
 
-  function renderShop() {
+  function coinMoves(team) {
+    const name = C.teamName(team);
+    return game.log.filter(entry =>
+      entry.startsWith(name + ' gana ') || entry.startsWith(name + ' gasta ') || entry.startsWith('Toda la flota gana ')
+    ).slice(0, 4);
+  }
+
+  function renderCoins() {
     const team = selected();
-    $('shopTeam').textContent = C.teamName(team);
-    $('shopBalance').textContent = team.coins;
-    $('shopBalance').setAttribute('aria-label', coinText(team.coins));
-    $('shopPurse').style.setProperty('--ship-color', C.COLORS[team.id - 1]);
-    $('shopCrews').replaceChildren(...active().map(crew => {
+    $('coinTeamName').textContent = C.teamName(team);
+    $('coinTeamHint').textContent = team.coins ? 'Elige la cantidad y si la gana o la gasta.' : 'Sin monedas por ahora: solo puede ganar.';
+    $('coinBalance').textContent = team.coins;
+    $('coinBalance').setAttribute('aria-label', coinText(team.coins));
+    $('coinCrews').replaceChildren(...active().map(crew => {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'crew-number shop-crew';
       button.textContent = crew.id;
       button.style.setProperty('--ship-color', C.COLORS[crew.id - 1]);
-      button.title = C.teamName(crew);
+      button.title = C.teamName(crew) + ' · ' + coinText(crew.coins);
       button.setAttribute('aria-label', C.teamName(crew) + ', ' + coinText(crew.coins));
       button.setAttribute('aria-pressed', String(crew.id === team.id));
       button.addEventListener('click', () => {
         selectTeam(crew.id);
-        renderShop();
+        renderCoins();
       });
       return button;
     }));
-    $('shopItems').replaceChildren(...Object.entries(C.SHOP).map(([key, item]) => {
-      const problem = C.buyProblem(game, team, key);
+    $('coinAmounts').replaceChildren(...COIN_AMOUNTS.map(amount => {
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = 'shop-card';
-      button.dataset.item = key;
-      button.dataset.effect = item.effect || 'none';
-      button.classList.toggle('locked', Boolean(problem));
-      button.setAttribute('aria-disabled', String(Boolean(problem) || busy));
-      button.innerHTML =
-        '<span class="shop-icon" aria-hidden="true"><svg><use href="#' + SHOP_ICONS[item.effect] + '"/></svg></span>' +
-        '<span class="shop-copy"><strong></strong><small></small></span>' +
-        '<span class="shop-price"><svg aria-hidden="true"><use href="#i-coin"/></svg><b></b></span>' +
-        '<span class="shop-lock"></span>';
-      button.querySelector('strong').textContent = item.name;
-      button.querySelector('small').textContent = item.description;
-      button.querySelector('small').hidden = !item.description;
-      button.querySelector('.shop-price b').textContent = item.cost || 'Gratis';
-      button.querySelector('.shop-lock').textContent = problem;
-      button.setAttribute('aria-label', item.name + ', ' + (item.cost ? coinText(item.cost) : 'gratis') +
-        (problem ? '. No disponible: ' + problem : ''));
-      button.addEventListener('click', () => spend(key, button));
+      button.className = 'coin-chip';
+      button.textContent = amount;
+      button.setAttribute('aria-pressed', String(amount === coinAmount));
+      button.setAttribute('aria-label', coinText(amount));
+      button.addEventListener('click', () => {
+        coinAmount = amount;
+        renderCoins();
+      });
       return button;
+    }));
+    $('earnValue').textContent = '+' + coinAmount;
+    $('spendValue').textContent = '−' + coinAmount;
+    $('earnBtn').setAttribute('aria-label', 'Ganar ' + coinText(coinAmount));
+    $('spendBtn').setAttribute('aria-label', 'Gastar ' + coinText(coinAmount));
+    $('earnBtn').disabled = busy || team.coins + coinAmount > 999;
+    $('spendBtn').classList.toggle('locked', team.coins < coinAmount);
+    $('earnAllLabel').textContent = '+' + coinAmount + ' a toda la flota';
+    $('coinUndoBtn').disabled = busy || !history.length;
+    const moves = coinMoves(team);
+    $('coinHistory').hidden = !moves.length;
+    $('coinHistory').replaceChildren(...moves.map(text => {
+      const item = document.createElement('li');
+      item.textContent = text;
+      item.classList.add(text.includes(' gasta ') ? 'down' : 'up');
+      return item;
     }));
   }
 
@@ -874,15 +854,19 @@
 
   $('rollBtn').addEventListener('click', () => roll(false));
   $('roundBtn').addEventListener('click', () => roll(true));
-  $('coinPlusBtn').addEventListener('click', () => {
-    if (commit({ type: 'coin', amount: 1 })) sfx.earn();
-  });
-  $('coinMinusBtn').addEventListener('click', () => commit({ type: 'coin', amount: -1 }));
-  $('coinAllBtn').addEventListener('click', () => {
-    if (commit({ type: 'coinAll', amount: 1 })) {
+  $('earnBtn').addEventListener('click', () => changeCoins(coinAmount));
+  $('spendBtn').addEventListener('click', () => changeCoins(-coinAmount));
+  $('earnAllBtn').addEventListener('click', () => {
+    if (commit({ type: 'coinAll', amount: coinAmount })) {
       sfx.earn();
-      toast('Toda la flota recibe +1 moneda.');
+      renderCoins();
+      coinBurst(coinAmount);
+      toast('Toda la flota gana +' + coinText(coinAmount) + '.');
     }
+  });
+  $('coinUndoBtn').addEventListener('click', () => {
+    $('undoBtn').click();
+    renderCoins();
   });
   function renderSound() {
     const label = soundOn ? 'Sonido activado' : 'Sonido desactivado';
@@ -982,9 +966,9 @@
   $('useSceneBtn').addEventListener('click', () => {
     if (commit({ type: 'chapter', chapter: scenePreview })) $('storyDialog').close();
   });
-  $('shopBtn').addEventListener('click', () => {
-    renderShop();
-    open('shopDialog');
+  $('coinBtn').addEventListener('click', () => {
+    renderCoins();
+    open('coinDialog');
   });
   $('logBtn').addEventListener('click', () => {
     const entries = game.log.length ? game.log : ['Las acciones de la partida aparecerán aquí.'];
@@ -1080,11 +1064,6 @@
 
   render();
   renderTimer();
-  if (C.SHOP_ERROR) {
-    $('shopWarning').textContent = C.SHOP_ERROR;
-    $('shopWarning').hidden = false;
-    console.warn(C.SHOP_ERROR);
-  }
   if (loadWarning) {
     $('saveStatus').textContent = 'Revisa el guardado antes de continuar';
     toast(loadWarning);

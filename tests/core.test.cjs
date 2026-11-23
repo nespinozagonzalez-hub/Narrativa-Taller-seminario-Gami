@@ -68,7 +68,6 @@ test('acortar la ruta limita todos los barcos y ampliar preserva las casillas re
   game = settings(game, { routeLength: 30 });
   assert.equal(game.teams[0].position, 18);
   assert.equal(game.teams[0].lastRoll.from, null);
-  assert.throws(() => C.apply(game, { type: 'buy', item: 'double' }), /Primero lancen el dado/);
 });
 
 test('la llegada no requiere un número exacto y las demás tripulaciones siguen navegando', () => {
@@ -80,63 +79,20 @@ test('la llegada no requiere un número exacto y las demás tripulaciones siguen
   assert.equal(game.teams[6].position, 6);
 });
 
-test('volver a tirar reemplaza el resultado aunque sea menor y cobra exactamente dos monedas', () => {
-  const before = roll(C.apply(C.initial(), { type: 'move', amount: 4 }), 5);
-  const after = C.apply(before, { type: 'buy', item: 'reroll', face: 2 });
-  assert.equal(before.teams[0].position, 9);
-  assert.equal(before.teams[0].coins, 3);
-  assert.equal(after.teams[0].position, 6);
-  assert.equal(after.teams[0].coins, 1);
-  assert.equal(after.teams[0].lastRoll.mode, 'reroll');
-  assert.throws(() => C.apply(after, { type: 'buy', item: 'double' }), /Ya usaste/);
-});
-
-test('duplicar aplica el doble desde el punto de partida, hasta la meta y por tres monedas', () => {
-  const based = roll(C.apply(C.initial(), { type: 'move', amount: 14 }), 6);
-  const doubled = C.apply(based, { type: 'buy', item: 'double' });
-  assert.equal(doubled.teams[0].position, 25);
-  assert.equal(doubled.teams[0].coins, 0);
-  assert.equal(C.rollValue(doubled.teams[0].lastRoll), 12);
-});
-
-test('cada barco puede usar un canje por tirada y una tirada nueva permite otro canje', () => {
-  let game = C.apply(C.initial(), { type: 'coin', amount: 10 });
-  game = roll(game, 4);
-  game = C.apply(game, { type: 'buy', item: 'double' });
-  assert.equal(game.teams[0].position, 8);
-  assert.throws(() => C.apply(game, { type: 'buy', item: 'reroll', face: 6 }), /Ya usaste/);
-  assert.throws(() => C.apply(game, { type: 'buy', id: 2, item: 'reroll', face: 6 }), /Primero lancen el dado/);
-  game = roll(game, 2);
-  game = C.apply(game, { type: 'buy', item: 'reroll', face: 3 });
-  assert.equal(game.teams[0].position, 11);
-  assert.equal(game.teams[0].coins, 8);
-});
-
-test('un canje con saldo insuficiente no cambia la jugada y los apoyos mantienen su precio', () => {
-  let game = C.apply(C.initial(), { type: 'buy', item: 'hint' });
-  game = roll(game, 3);
-  assert.throws(() => C.apply(game, { type: 'buy', item: 'double' }), /Falta 1 moneda/);
-  assert.equal(game.teams[0].coins, 2);
-  assert.equal(game.teams[0].position, 3);
-  game = C.apply(game, { type: 'buy', item: 'example' });
-  assert.equal(game.teams[0].coins, 0);
-  assert.throws(() => C.apply(game, { type: 'coin', amount: -1 }), /saldo/);
-});
-
 test('los ajustes manuales se limitan al recorrido e invalidan el canje de la tirada anterior', () => {
   let game = C.apply(C.initial(), { type: 'move', amount: -1 });
   assert.equal(game.teams[0].position, 0);
   game = roll(game, 3);
   game = C.apply(game, { type: 'move', amount: 1 });
   assert.equal(game.teams[0].position, 4);
-  assert.throws(() => C.apply(game, { type: 'buy', item: 'reroll', face: 6 }), /Primero lancen el dado/);
+  assert.equal(game.teams[0].lastRoll.from, null);
   game = C.apply(game, { type: 'move', amount: 40 });
   assert.equal(game.teams[0].position, 25);
 });
 
-test('respaldos nuevos conservan ruta, resultado del canje, historial y reloj', () => {
+test('respaldos nuevos conservan ruta, monedas, tirada, historial y reloj', () => {
   let game = settings(C.initial(), { count: 2, routeLength: 28 });
-  game = C.apply(roll(game, 4), { type: 'buy', item: 'double' });
+  game = C.apply(roll(game, 4), { type: 'coin', amount: -2 });
   const original = {
     app: 'ruta-del-tesoro', version: C.VERSION, game,
     history: [C.initial()], timer: { minutes: 10, remaining: 120000, deadline: 0 }
@@ -176,36 +132,27 @@ test('un respaldo de otra aplicación o con datos fuera del rango se rechaza', (
   assert.throws(() => C.backup(badTimer), /reloj/);
 });
 
-test('la tabla de canjes de dist/canjes.js es válida y se puede reemplazar', () => {
-  const vm = require('node:vm');
-  const fs = require('node:fs');
-  const path = require('node:path');
-  const sandbox = { window: {} };
-  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../dist/canjes.js'), 'utf8'), sandbox);
-  const shop = C.buildShop(sandbox.window.TABLA_CANJES);
-  assert.ok(Object.keys(shop).length > 0);
-
-  const custom = C.buildShop([
-    { id: 'comodin', nombre: 'Comodín', precio: 4 },
-    { id: 'turbo', nombre: 'Turbo', precio: 1, efecto: 'avanzar', casillas: 3 }
-  ]);
-  assert.equal(custom.comodin.effect, '');
-  assert.equal(custom.turbo.steps, 3);
-  assert.throws(() => C.buildShop([{ id: 'x', nombre: 'X', precio: -1 }]), /precio/);
-  assert.throws(() => C.buildShop([{ id: 'x', nombre: 'X', precio: 1, efecto: 'volar' }]), /efecto/);
-  assert.throws(() => C.buildShop([{ id: 'x', nombre: 'X', precio: 1 }, { id: 'x', nombre: 'Y', precio: 1 }]), /único/);
-  assert.throws(() => C.buildShop([{ id: 'x', nombre: 'X', precio: 1, efecto: 'avanzar' }]), /casillas/);
-});
-
-test('un canje sin efecto solo descuenta monedas y queda en la bitácora', () => {
-  const game = C.apply(C.initial(), { type: 'buy', item: 'hint' });
-  assert.equal(game.teams[0].coins, 2);
-  assert.equal(game.teams[0].position, 0);
-  assert.match(game.log[0], /Pista extra · −1 moneda\./);
-});
-
 test('el relator puede dar una moneda a toda la flota activa', () => {
   const game = C.apply(settings(C.initial(), { count: 3 }), { type: 'coinAll', amount: 1 });
   assert.deepEqual(game.teams.map(team => team.coins), [4, 4, 4, 3, 3, 3, 3]);
   assert.throws(() => C.apply(game, { type: 'coinAll', amount: 0 }), /saldo/);
+});
+
+test('las tripulaciones ganan y gastan monedas sin tabla de canjes', () => {
+  let game = C.apply(C.initial(), { type: 'coin', amount: 5 });
+  assert.equal(game.teams[0].coins, 8);
+  assert.match(game.log[0], /gana \+5 monedas · saldo 8/);
+  game = C.apply(game, { type: 'coin', amount: -8 });
+  assert.equal(game.teams[0].coins, 0);
+  assert.match(game.log[0], /gasta −8 monedas · saldo 0/);
+  assert.throws(() => C.apply(game, { type: 'coin', amount: -1 }), /No alcanza: El Cormorán tiene 0 monedas/);
+  assert.throws(() => C.apply(game, { type: 'coin', amount: 0 }), /no válida/);
+  assert.throws(() => C.apply(game, { type: 'buy', item: 'hint' }), /no reconocida/);
+});
+
+test('los respaldos con tiradas duplicadas o repetidas de la versión anterior se siguen abriendo', () => {
+  const game = C.apply(C.initial(), { type: 'roll', dice: { 1: 4 } });
+  game.teams[0].lastRoll.mode = 'double';
+  game.teams[0].position = 8;
+  assert.equal(C.validate(game).teams[0].position, 8);
 });

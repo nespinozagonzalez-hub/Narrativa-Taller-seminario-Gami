@@ -10,15 +10,15 @@
 | Ficha de análisis de juegos | Qué regla observamos, qué hicimos, qué nos motivó y cómo lo llevaríamos a clase | Por preparar para imprimir |
 | Consigna de la primera misión | Adaptar una mecánica a una actividad y explicar su vínculo con el aprendizaje | Por preparar para proyectar |
 | Plantilla de mini gamificación | Objetivo, narrativa inicial, desafío, reglas, feedback y evidencia de aprendizaje | Por preparar para imprimir |
-| Menú de canjes | Mostrar las mismas ayudas y precios de `dist/canjes.js`; distinguir las fichas físicas del avance del barco | Esperando la tabla definitiva |
-| Monedas físicas | Repartir, registrar en el tablero y reservar para el resto de la jornada | Material por reunir |
+| Tabla de canjes | Va en la presentación; el tablero solo registra ganar y gastar | Por preparar en la presentación |
+| Monedas físicas (opcionales) | Si se usan, repartirlas y anotarlas también en la bolsa de monedas del tablero | Material por reunir |
 
 ### Decisiones pendientes antes de usarlo
 
 - Elegir entre dos y siete tripulaciones según la asistencia. Sus nombres se escriben en el taller.
 - Elegir los momentos de tirada. Un punto de partida puede ser al cerrar una actividad o una misión; el reloj es opcional.
 - Definir cuánto dura cada juego y cuáles llevar de la ludoteca.
-- **Cargar la tabla de canjes definitiva** en `dist/canjes.js` (pendiente: la entrega Nicolás). Mientras tanto el tablero usa una tabla de ejemplo.
+- Preparar la tabla de canjes en la presentación de la sesión. El tablero solo registra cuánto gana y gasta cada tripulación, así que la tabla se puede cambiar sin tocar el código.
 - Ensayar el tablero en el computador y el proyector que se usarán. Descargar el ZIP para contar con una copia sin conexión.
 
 ## Tarde
