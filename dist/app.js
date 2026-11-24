@@ -477,6 +477,8 @@
 
     $('rollBtn').disabled = busy || atTreasure(team);
     $('roundBtn').disabled = busy || arrived === game.count;
+    $('stepBtn').disabled = busy || atTreasure(team);
+    $('stepBtn').setAttribute('aria-label', 'Avanzar una casilla a ' + C.teamName(team));
     $('undoBtn').disabled = busy || !history.length;
     $('backBtn').disabled = busy || team.position === 0;
     $('forwardBtn').disabled = busy || atTreasure(team);
@@ -854,6 +856,10 @@
 
   $('rollBtn').addEventListener('click', () => roll(false));
   $('roundBtn').addEventListener('click', () => roll(true));
+  $('stepBtn').addEventListener('click', () => {
+    if (busy || atTreasure(selected())) return;
+    playDice({ type: 'move', amount: 1 }, [game.selected], 'steps', false);
+  });
   $('earnBtn').addEventListener('click', () => changeCoins(coinAmount));
   $('spendBtn').addEventListener('click', () => changeCoins(-coinAmount));
   $('earnAllBtn').addEventListener('click', () => {

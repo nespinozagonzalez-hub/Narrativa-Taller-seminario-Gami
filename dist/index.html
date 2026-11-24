@@ -7,10 +7,10 @@
   <meta name="description" content="Tablero pirata del taller de gamificación. Navega por el mapa con tu tripulación, lanza el dado y usa tus monedas para llegar al tesoro.">
   <title>La ruta del tesoro · Taller de gamificación</title>
   <link rel="icon" href="./assets/cofre-pirata.webp" type="image/webp">
-  <link rel="stylesheet" href="styles.css?v=7">
+  <link rel="stylesheet" href="styles.css?v=8">
   <script src="core.js?v=8" defer></script>
   <script src="cinematic.js?v=5" defer></script>
-  <script src="app.js?v=8" defer></script>
+  <script src="app.js?v=9" defer></script>
 </head>
 <body>
   <svg class="icon-library" aria-hidden="true">
@@ -134,6 +134,7 @@
       <div class="roll-actions">
         <button id="rollBtn" class="primary">Lanzar dado</button>
         <button id="roundBtn" class="secondary">Ronda completa</button>
+        <button id="stepBtn" class="secondary step-button" title="Avanzar una casilla al barco seleccionado" aria-label="Avanzar una casilla">+1 casilla</button>
         <button id="coinBtn" class="coin-button" aria-label="Monedas" aria-haspopup="dialog" title="Ganar o gastar monedas">
           <span class="coin-medal" aria-hidden="true"><svg><use href="#i-coin"/></svg></span>
           <span class="coin-copy"><span id="selectedCoins">3</span><small>Monedas</small></span>

@@ -256,6 +256,7 @@ button svg, .brand-icon svg, .crew-coins svg {
 #selectedPosition { margin-top: 2px; color: var(--muted); font-size: .875rem; }
 .roll-outcome { margin-top: 2px; color: #783c23; font-size: .8125rem; font-weight: bold; }
 .roll-actions { gap: 6px; }
+.step-button { white-space: nowrap; }
 .primary, .secondary, .danger-button, .cashout {
   display: inline-flex;
   align-items: center;
@@ -768,7 +769,7 @@ dialog::backdrop { background: #061d28ba; backdrop-filter: blur(4px); }
 @media (max-width: 700px) {
   .helm { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 9px; }
   .helm .die { width: 40px; height: 40px; }
-  .roll-actions { display: grid; grid-template-columns: 1fr 1fr auto; grid-column: 1 / -1; }
+  .roll-actions { display: grid; grid-template-columns: 1fr 1fr auto auto; grid-column: 1 / -1; }
   .roll-actions button { padding-inline: 8px; font-size: .875rem; }
   .arrival .text-button span { display: none; }
   .is-projecting .board-status { flex-direction: column; }
